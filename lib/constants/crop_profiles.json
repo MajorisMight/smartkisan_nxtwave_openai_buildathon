@@ -1,0 +1,316 @@
+{
+  "WHEAT": {
+    "crop_id": "wheat_001",
+    "name": "Wheat",
+    "scientific_name": "Triticum aestivum",
+    "total_duration_days": 120,
+    "growth_stages": [
+      { "stage": "Germination", "start_day": 0, "end_day": 10, "color_code": "#8BC34A" },
+      { "stage": "Vegetative", "start_day": 11, "end_day": 45, "color_code": "#4CAF50" },
+      { "stage": "Tillering", "start_day": 46, "end_day": 65, "color_code": "#2E7D32" },
+      { "stage": "Flowering", "start_day": 66, "end_day": 90, "color_code": "#FDD835" },
+      { "stage": "Maturity", "start_day": 91, "end_day": 120, "color_code": "#FB8C00" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 50,
+      "phosphorus": 25,
+      "potassium": 12,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K, 50% Nitrogen" },
+        { "day": 30, "type": "Top Dressing", "description": "25% Nitrogen" },
+        { "day": 55, "type": "Top Dressing", "description": "25% Nitrogen" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 6,
+      "method": "Surface/Sprinkler",
+      "critical_days": [21, 45, 65, 85, 105],
+      "moisture_requirement": "Moderate"
+    },
+    "pest_risk_windows": [
+      {
+        "pest_name": "Aphids",
+        "risk_start_day": 60,
+        "risk_end_day": 90,
+        "severity": "Medium"
+      },
+      {
+        "pest_name": "Yellow Rust",
+        "risk_start_day": 40,
+        "risk_end_day": 80,
+        "severity": "High"
+      }
+    ],
+    "harvest_window": {
+      "start_buffer_days": -5,
+      "end_buffer_days": 10
+    }
+  },
+  "RICE": {
+    "crop_id": "rice_001",
+    "name": "Rice (Paddy)",
+    "scientific_name": "Oryza sativa",
+    "total_duration_days": 130,
+    "growth_stages": [
+      { "stage": "Nursery", "start_day": 0, "end_day": 25, "color_code": "#C5E1A5" },
+      { "stage": "Transplanting", "start_day": 26, "end_day": 35, "color_code": "#81C784" },
+      { "stage": "Tillering", "start_day": 36, "end_day": 60, "color_code": "#43A047" },
+      { "stage": "Flowering", "start_day": 61, "end_day": 90, "color_code": "#FFF176" },
+      { "stage": "Maturity", "start_day": 91, "end_day": 130, "color_code": "#FFB300" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 40,
+      "phosphorus": 20,
+      "potassium": 20,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Complete P&K" },
+        { "day": 20, "type": "Top Dressing", "description": "First split Nitrogen" },
+        { "day": 50, "type": "Top Dressing", "description": "Second split Nitrogen" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 15,
+      "method": "Flood Irrigation",
+      "critical_days": [35, 50, 75, 95],
+      "moisture_requirement": "High"
+    },
+    "pest_risk_windows": [
+      {
+        "pest_name": "Stem Borer",
+        "risk_start_day": 30,
+        "risk_end_day": 70,
+        "severity": "High"
+      },
+      {
+        "pest_name": "Blast Disease",
+        "risk_start_day": 50,
+        "risk_end_day": 90,
+        "severity": "High"
+      }
+    ],
+    "harvest_window": {
+      "start_buffer_days": 0,
+      "end_buffer_days": 7
+    }
+  },
+  
+  "MAIZE": {
+    "crop_id": "maize_001",
+    "name": "Maize",
+    "scientific_name": "Zea mays",
+    "total_duration_days": 110,
+    "growth_stages": [
+      { "stage": "Germination", "start_day": 0, "end_day": 10, "color_code": "#C5E1A5" },
+      { "stage": "Vegetative", "start_day": 11, "end_day": 45, "color_code": "#7CB342" },
+      { "stage": "Tasseling", "start_day": 46, "end_day": 65, "color_code": "#FDD835" },
+      { "stage": "Grain Filling", "start_day": 66, "end_day": 90, "color_code": "#F9A825" },
+      { "stage": "Maturity", "start_day": 91, "end_day": 110, "color_code": "#EF6C00" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 60, "phosphorus": 30, "potassium": 20,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "1/3 Nitrogen, Full P&K" },
+        { "day": 30, "type": "Top Dress", "description": "1/3 Nitrogen at knee-high" },
+        { "day": 55, "type": "Top Dress", "description": "1/3 Nitrogen at tasseling" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 5,
+      "method": "Furrow",
+      "critical_days": [25, 50, 75],
+      "moisture_requirement": "High"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Fall Armyworm", "risk_start_day": 15, "risk_end_day": 60, "severity": "High" }
+    ],
+    "harvest_window": { "start_buffer_days": -2, "end_buffer_days": 8 }
+  },
+
+  "BARLEY": {
+    "crop_id": "barley_001",
+    "name": "Barley",
+    "scientific_name": "Hordeum vulgare",
+    "total_duration_days": 110,
+    "growth_stages": [
+      { "stage": "Germination", "start_day": 0, "end_day": 10, "color_code": "#DCE775" },
+      { "stage": "Vegetative", "start_day": 11, "end_day": 40, "color_code": "#9CCC65" },
+      { "stage": "Tillering", "start_day": 41, "end_day": 60, "color_code": "#689F38" },
+      { "stage": "Flowering", "start_day": 61, "end_day": 85, "color_code": "#FFF176" },
+      { "stage": "Maturity", "start_day": 86, "end_day": 110, "color_code": "#FFA000" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 30, "phosphorus": 15, "potassium": 10,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K, Half Nitrogen" },
+        { "day": 40, "type": "Top Dress", "description": "Remaining Nitrogen" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 3,
+      "method": "Flood/Sprinkler",
+      "critical_days": [30, 65],
+      "moisture_requirement": "Low"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Aphids", "risk_start_day": 50, "risk_end_day": 80, "severity": "Medium" }
+    ],
+    "harvest_window": { "start_buffer_days": -3, "end_buffer_days": 5 }
+  },
+
+  "BAJRA": {
+    "crop_id": "bajra_001",
+    "name": "Bajra (Pearl Millet)",
+    "scientific_name": "Pennisetum glaucum",
+    "total_duration_days": 90,
+    "growth_stages": [
+      { "stage": "Establishment", "start_day": 0, "end_day": 15, "color_code": "#AED581" },
+      { "stage": "Vegetative", "start_day": 16, "end_day": 40, "color_code": "#558B2F" },
+      { "stage": "Flowering", "start_day": 41, "end_day": 65, "color_code": "#FBC02D" },
+      { "stage": "Maturity", "start_day": 66, "end_day": 90, "color_code": "#E65100" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 40, "phosphorus": 20, "potassium": 20,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K, 50% N" },
+        { "day": 30, "type": "Top Dress", "description": "50% N" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 2,
+      "method": "Rainfed/Borewell",
+      "critical_days": [45],
+      "moisture_requirement": "Very Low"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Ergot", "risk_start_day": 45, "risk_end_day": 70, "severity": "Medium" }
+    ],
+    "harvest_window": { "start_buffer_days": -2, "end_buffer_days": 5 }
+  },
+
+  "COTTON": {
+    "crop_id": "cotton_001",
+    "name": "Cotton",
+    "scientific_name": "Gossypium hirsutum",
+    "total_duration_days": 180,
+    "growth_stages": [
+      { "stage": "Establishment", "start_day": 0, "end_day": 30, "color_code": "#E8F5E9" },
+      { "stage": "Vegetative", "start_day": 31, "end_day": 70, "color_code": "#4CAF50" },
+      { "stage": "Flowering", "start_day": 71, "end_day": 120, "color_code": "#FFF9C4" },
+      { "stage": "Boll Formation", "start_day": 121, "end_day": 160, "color_code": "#BDBDBD" },
+      { "stage": "Maturity", "start_day": 161, "end_day": 180, "color_code": "#757575" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 60, "phosphorus": 30, "potassium": 30,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K" },
+        { "day": 45, "type": "Split 1", "description": "50% Nitrogen" },
+        { "day": 90, "type": "Split 2", "description": "50% Nitrogen" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 8,
+      "method": "Drip/Furrow",
+      "critical_days": [75, 100, 130],
+      "moisture_requirement": "Moderate"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Bollworm", "risk_start_day": 80, "risk_end_day": 150, "severity": "Extreme" },
+      { "pest_name": "Whitefly", "risk_start_day": 40, "risk_end_day": 100, "severity": "High" }
+    ],
+    "harvest_window": { "start_buffer_days": 0, "end_buffer_days": 20 }
+  },
+
+  "SUGARCANE": {
+    "crop_id": "cane_001",
+    "name": "Sugarcane",
+    "scientific_name": "Saccharum officinarum",
+    "total_duration_days": 360,
+    "growth_stages": [
+      { "stage": "Germination", "start_day": 0, "end_day": 45, "color_code": "#C8E6C9" },
+      { "stage": "Tillering", "start_day": 46, "end_day": 120, "color_code": "#66BB6A" },
+      { "stage": "Grand Growth", "start_day": 121, "end_day": 270, "color_code": "#2E7D32" },
+      { "stage": "Maturity", "start_day": 271, "end_day": 360, "color_code": "#F9A825" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 100, "phosphorus": 50, "potassium": 50,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K, 25% N" },
+        { "day": 60, "type": "Split 1", "description": "25% Nitrogen" },
+        { "day": 100, "type": "Split 2", "description": "25% Nitrogen" },
+        { "day": 150, "type": "Split 3", "description": "25% Nitrogen" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 25,
+      "method": "Flood/Drip",
+      "critical_days": [60, 150, 240],
+      "moisture_requirement": "Extreme"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Early Shoot Borer", "risk_start_day": 30, "risk_end_day": 100, "severity": "High" },
+      { "pest_name": "Red Rot", "risk_start_day": 180, "risk_end_day": 300, "severity": "Extreme" }
+    ],
+    "harvest_window": { "start_buffer_days": -10, "end_buffer_days": 30 }
+  },
+
+  "SOYBEAN": {
+    "crop_id": "soy_001",
+    "name": "Soybean",
+    "scientific_name": "Glycine max",
+    "total_duration_days": 100,
+    "growth_stages": [
+      { "stage": "Germination", "start_day": 0, "end_day": 10, "color_code": "#DCEDC8" },
+      { "stage": "Vegetative", "start_day": 11, "end_day": 35, "color_code": "#8BC34A" },
+      { "stage": "Flowering", "start_day": 36, "end_day": 60, "color_code": "#E1BEE7" },
+      { "stage": "Pod Formation", "start_day": 61, "end_day": 85, "color_code": "#4CAF50" },
+      { "stage": "Maturity", "start_day": 86, "end_day": 100, "color_code": "#BF360C" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 10, "phosphorus": 30, "potassium": 15,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full NPK (Soybean fixes its own Nitrogen later)" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 4,
+      "method": "Rainfed",
+      "critical_days": [40, 70],
+      "moisture_requirement": "Moderate"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Girdle Beetle", "risk_start_day": 30, "risk_end_day": 60, "severity": "High" }
+    ],
+    "harvest_window": { "start_buffer_days": -2, "end_buffer_days": 6 }
+  },
+
+  "MUSTARD": {
+    "crop_id": "mustard_001",
+    "name": "Mustard",
+    "scientific_name": "Brassica juncea",
+    "total_duration_days": 110,
+    "growth_stages": [
+      { "stage": "Establishment", "start_day": 0, "end_day": 15, "color_code": "#F1F8E9" },
+      { "stage": "Vegetative", "start_day": 16, "end_day": 45, "color_code": "#689F38" },
+      { "stage": "Flowering", "start_day": 46, "end_day": 75, "color_code": "#FFEE58" },
+      { "stage": "Maturity", "start_day": 76, "end_day": 110, "color_code": "#FBC02D" }
+    ],
+    "nutrients_kg_per_acre": {
+      "nitrogen": 30, "phosphorus": 15, "potassium": 15,
+      "application_schedule": [
+        { "day": 0, "type": "Basal", "description": "Full P&K, Half N" },
+        { "day": 35, "type": "Top Dress", "description": "Remaining N" }
+      ]
+    },
+    "irrigation": {
+      "total_sessions": 3,
+      "method": "Check Basin",
+      "critical_days": [35, 65],
+      "moisture_requirement": "Low"
+    },
+    "pest_risk_windows": [
+      { "pest_name": "Aphids", "risk_start_day": 40, "risk_end_day": 80, "severity": "High" }
+    ],
+    "harvest_window": { "start_buffer_days": -5, "end_buffer_days": 5 }
+  }
+
+}

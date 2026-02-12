@@ -1,0 +1,63 @@
+# General
+*.log
+.DS_Store
+Thumbs.db
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ios/build/
+android/build/
+web/build/
+
+# IDE-specific
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+app.iml
+workspace.xml
+
+# iOS
+ios/.symlinks/
+ios/Pods/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/ephemeral/
+ios/Flutter/pod_cached_frameworks/
+ios/Flutter/.last_build_id
+ios/Runner.xcworkspace
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/flutter_assets/
+ios/Runner/Assets.xcassets/AppIcon.appiconset/
+*.app
+
+# Android
+android/app/src/main/jniLibs/
+android/.gradle/
+android/gradle/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# Sensitive files - It's a good practice to name files with keys like this
+# example: secrets_production.dart
+*_private.dart
+secrets*.dart
+
+# Environment files (API keys)
+.env
+
+# IMPORTANT:
+# You SHOULD commit your pubspec.lock file in an application project.
+# This ensures that all developers and CI/CD systems use the exact
+# same versions of all dependencies,
