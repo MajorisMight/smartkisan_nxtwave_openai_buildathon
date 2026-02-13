@@ -5,9 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:kisan/services/demo_data_service.dart';
 import '../constants/app_colors.dart';
-import '../utils/dummy_data.dart';
 import 'package:provider/provider.dart';
+import '../models/onboarding_profile.dart';
+import '../models/weather.dart';
 import '../providers/profile_provider.dart';
+import '../services/weather_service.dart';
 import 'fertilizer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,11 +22,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _userName = '';
+  String _weatherLocation = '';
+  Future<WeatherData>? _weatherFuture;
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final profile = context.read<ProfileProvider>().profile;
+    final nextLocation = _resolveWeatherLocation(profile);
+    if (_weatherFuture == null || _weatherLocation != nextLocation) {
+      _weatherLocation = nextLocation;
+      _weatherFuture =
+          _weatherLocation.isEmpty
+              ? null
+              : WeatherService.getCurrentWeather(_weatherLocation);
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -410,55 +428,133 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWeatherStrip() {
-    final weather = DummyData.getDummyWeatherData();
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36.w,
-            height: 36.w,
-            decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Icon(
-              Icons.wb_sunny,
-              color: AppColors.warning,
-              size: 18.sp,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              'Today: ${weather.temperature.toInt()}°C • ${weather.condition} • Humidity ${weather.humidity.toInt()}%',
-              style: GoogleFonts.poppins(
-                fontSize: 12.sp,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+    if (_weatherLocation.isEmpty) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 20.w),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(
+                Icons.location_off_outlined,
+                color: AppColors.warning,
+                size: 18.sp,
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () => context.go('/weather'),
-            child: Text(
-              'Details',
-              style: GoogleFonts.poppins(
-                fontSize: 12.sp,
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.w600,
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                'No location added',
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
+            TextButton(
+              onPressed: () => context.go('/weather'),
+              child: Text(
+                'Details',
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return FutureBuilder<WeatherData>(
+      future: _weatherFuture,
+      builder: (context, snapshot) {
+        final hasData = snapshot.hasData;
+        final weather = snapshot.data;
+        final weatherText =
+            hasData
+                ? 'Today: ${weather!.temperature.toInt()}°C • ${weather.condition} • Humidity ${weather.humidity.toInt()}%'
+                : (snapshot.hasError
+                    ? 'Weather unavailable for $_weatherLocation'
+                    : 'Loading weather for $_weatherLocation...');
+
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 20.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.borderLight),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  _weatherIcon(weather?.condition),
+                  color: AppColors.warning,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  weatherText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.go('/weather'),
+                child: Text(
+                  'Details',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.sp,
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  String _resolveWeatherLocation(FarmerProfile? profile) {
+    return (profile?.village ?? '').trim();
+  }
+
+  IconData _weatherIcon(String? condition) {
+    final normalized = (condition ?? '').toLowerCase();
+    if (normalized.contains('clear') || normalized.contains('sun')) return Icons.wb_sunny;
+    if (normalized.contains('cloud') || normalized.contains('overcast')) return Icons.cloud;
+    if (normalized.contains('rain') || normalized.contains('drizzle')) return Icons.grain;
+    if (normalized.contains('storm') || normalized.contains('thunder')) return Icons.thunderstorm;
+    if (normalized.contains('fog')) return Icons.foggy;
+    return Icons.wb_sunny;
   }
 
   Widget _buildRecentOrders() {

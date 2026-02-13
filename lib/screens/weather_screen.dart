@@ -1,72 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import '../constants/app_colors.dart';
-import '../services/demo_data_service.dart';
+import '../models/onboarding_profile.dart';
 import '../models/weather.dart';
+import '../providers/profile_provider.dart';
+import '../services/weather_advisor_service.dart';
+import '../services/weather_service.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
 
   @override
-  _WeatherScreenState createState() => _WeatherScreenState();
+  State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
+  final TextEditingController _locationController = TextEditingController();
+  String _activeQueryLocation = '';
+
   int _selectedIndex = 2;
+  bool _loading = false;
   WeatherData? _weatherData;
-  bool _loading = true;
-  String? _locationName;
+  List<WeatherAdvisory> _llmAdvisories = [];
+  String _llmSummary = '';
+  String? _llmError;
+  String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _loadDemoWeatherData();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final profile = Provider.of<ProfileProvider>(context).profile;
+    final location = _resolveLocation(profile);
+    if (_activeQueryLocation != location) {
+      _activeQueryLocation = location;
+      _locationController.text = location;
+      if (location.isEmpty) {
+        setState(() {
+          _loading = false;
+          _weatherData = null;
+          _error = null;
+          _llmError = null;
+          _llmSummary = '';
+          _llmAdvisories = const [];
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadWeather(location: location);
+        });
+      }
+    }
   }
-  
-  Future<void> _loadDemoWeatherData() async {
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadWeather({String? location}) async {
     setState(() {
       _loading = true;
+      _error = null;
     });
-    
-    // Simulate loading delay
-    await Future.delayed(Duration(seconds: 1));
-    
-    setState(() {
-      _weatherData = DemoDataService.getDemoWeatherData();
-      _locationName = _weatherData!.location;
-      _loading = false;
-    });
+
+    final query = (location ?? _locationController.text).trim();
+    if (query.isEmpty) {
+      debugPrint('[WeatherScreen] empty query, not loading weather');
+      setState(() {
+        _loading = false;
+        _error = null;
+        _weatherData = null;
+        _llmSummary = '';
+        _llmAdvisories = const [];
+        _llmError = null;
+      });
+      return;
+    }
+
+    debugPrint('[WeatherScreen] _loadWeather start query="$query"');
+    try {
+      final weather = await WeatherService.getCurrentWeather(query);
+      debugPrint('[WeatherScreen] current weather loaded location="${weather.location}"');
+      WeatherAdvisoryResponse? advisoryResponse;
+      String? llmError;
+      try {
+        advisoryResponse = await WeatherAdvisorService.getAdvisories(
+          location: query,
+          weather: weather,
+        );
+        debugPrint(
+          '[WeatherScreen] LLM advisories loaded count=${advisoryResponse.advisories.length}',
+        );
+      } catch (e) {
+        debugPrint('[WeatherScreen] LLM advisory error: $e');
+        llmError = e.toString().replaceFirst('Exception: ', '');
+      }
+      if (!mounted) return;
+      setState(() {
+        _weatherData = weather;
+        _llmSummary = advisoryResponse?.summary ?? '';
+        _llmAdvisories = advisoryResponse?.advisories ?? const [];
+        _llmError = llmError;
+        _loading = false;
+      });
+      debugPrint('[WeatherScreen] _loadWeather completed query="$query"');
+    } catch (e) {
+      debugPrint('[WeatherScreen] weather pipeline error query="$query": $e');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: _loading
-              ? Center(child: CircularProgressIndicator())
-              : _weatherData == null
-                  ? Center(child: Text('Unable to fetch weather data'))
-                  : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(),
-                          _buildCurrentWeather(),
-                          _buildWeatherForecast(),
-                          _buildWeatherAlerts(),
-                          _buildSoilConditions(),
-                          _buildCropRecommendations(),
-                          SizedBox(height: 20.h),
-                        ],
-                      ),
-                    ),
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: () => _loadWeather(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+                    children: [
+                      _buildHeader(),
+                      SizedBox(height: 14.h),
+                      _buildLocationInput(),
+                      SizedBox(height: 16.h),
+                      if (_error != null) _buildErrorCard() else ..._buildWeatherContent(),
+                    ],
+                  ),
+                ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -74,168 +149,104 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Weather',
-                style: GoogleFonts.poppins(
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                _locationName ?? 'Loading...',
-                style: GoogleFonts.poppins(
-                  fontSize: 16.sp,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: Icon(Icons.refresh, color: AppColors.primaryGreen),
-            onPressed: _loadDemoWeatherData,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentWeather() {
-    if (_weatherData == null) return SizedBox.shrink();
-    
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_weatherData!.temperature.toStringAsFixed(1)}°C',
-                      style: GoogleFonts.poppins(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      _weatherData!.condition,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      _weatherData!.description,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                _getWeatherIcon(_weatherData!.condition),
-                size: 80.sp,
-                color: AppColors.primaryGreen,
-              ),
-            ],
-          ),
-          SizedBox(height: 20.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildWeatherDetail('Humidity', '${_weatherData!.humidity.toStringAsFixed(0)}%', FontAwesomeIcons.droplet),
-              _buildWeatherDetail('Wind', '${_weatherData!.windSpeed.toStringAsFixed(0)} km/h', FontAwesomeIcons.wind),
-              _buildWeatherDetail('Pressure', '${_weatherData!.pressure.toStringAsFixed(0)} hPa', FontAwesomeIcons.gauge),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeatherDetail(String label, String value, IconData icon) {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(icon, color: AppColors.primaryGreen, size: 20.sp),
-        SizedBox(height: 4.h),
         Text(
-          value,
+          'Weather',
           style: GoogleFonts.poppins(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
+            fontSize: 26.sp,
+            fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
         ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12.sp,
-            color: AppColors.textSecondary,
+        IconButton(
+          onPressed: () => _loadWeather(),
+          icon: const Icon(Icons.refresh_rounded),
+          color: AppColors.primaryGreen,
+        ),
+      ],
+    );
+  }
+
+  String _resolveLocation(FarmerProfile? profile) {
+    return (profile?.village ?? '').trim();
+  }
+
+  Widget _buildLocationInput() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _locationController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (value) => _loadWeather(location: value),
+            decoration: InputDecoration(
+              hintText: 'Enter city',
+              hintStyle: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13.sp),
+              filled: true,
+              fillColor: AppColors.white,
+              contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: const BorderSide(color: AppColors.primaryGreen),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        SizedBox(
+          height: 46.h,
+          child: ElevatedButton(
+            onPressed: () => _loadWeather(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
+            child: Text(
+              'Load',
+              style: GoogleFonts.poppins(color: AppColors.white, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildWeatherForecast() {
-    if (_weatherData == null || _weatherData!.forecast.isEmpty) return SizedBox.shrink();
-    
+  Widget _buildErrorCard() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '3-Day Forecast',
+            'Unable to load weather',
             style: GoogleFonts.poppins(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.error,
             ),
           ),
-          SizedBox(height: 12.h),
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: _weatherData!.forecast.map((forecast) => _buildForecastItem(forecast)).toList(),
+          SizedBox(height: 6.h),
+          Text(
+            _error!,
+            style: GoogleFonts.poppins(fontSize: 13.sp, color: AppColors.textSecondary),
+          ),
+          SizedBox(height: 10.h),
+          TextButton(
+            onPressed: () => _loadWeather(),
+            child: Text(
+              'Retry',
+              style: GoogleFonts.poppins(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -243,108 +254,173 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildForecastItem(WeatherForecast forecast) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+  List<Widget> _buildWeatherContent() {
+    final weather = _weatherData;
+    if (weather == null) {
+      return const <Widget>[];
+    }
+
+    return [
+      _buildCurrentWeatherCard(weather),
+      SizedBox(height: 12.h),
+      _buildMetricsGrid(weather),
+      SizedBox(height: 16.h),
+      if (weather.forecast.isNotEmpty) ...[
+        _buildForecastCard(weather.forecast),
+        SizedBox(height: 16.h),
+      ],
+      _buildAdvisorySection(
+        title: 'AI Weather Notes',
+        summary: _llmSummary,
+        advisories: _llmAdvisories,
+        emptyMessage: 'No AI advisories available.',
+      ),
+    ];
+  }
+
+  Widget _buildCurrentWeatherCard(WeatherData weather) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: _cardDecoration(),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _formatDate(forecast.date),
-                style: GoogleFonts.poppins(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                forecast.condition,
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              Icon(
-                _getWeatherIcon(forecast.condition),
-                color: AppColors.primaryGreen,
-                size: 24.sp,
-              ),
-              SizedBox(width: 12.w),
-              Text(
-                '${forecast.maxTemp.toStringAsFixed(0)}°/${forecast.minTemp.toStringAsFixed(0)}°',
-                style: GoogleFonts.poppins(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeatherAlerts() {
-    if (_weatherData == null || _weatherData!.alerts.warnings.isEmpty) return SizedBox.shrink();
-    
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Weather Alerts',
-            style: GoogleFonts.poppins(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.warning),
-            ),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.warning, color: AppColors.warning, size: 20.sp),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Risk Level: ${_weatherData!.alerts.riskLevel}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ],
+                Text(
+                  weather.location,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.sp,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                SizedBox(height: 8.h),
-                ..._weatherData!.alerts.warnings.map((warning) => Padding(
-                  padding: EdgeInsets.only(bottom: 4.h),
-                  child: Text(
-                    '• $warning',
+                SizedBox(height: 6.h),
+                Text(
+                  '${weather.temperature.toStringAsFixed(1)}°C',
+                  style: GoogleFonts.poppins(
+                    fontSize: 38.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  weather.condition,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreenDark,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  weather.description,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            _getWeatherIcon(weather.condition),
+            size: 52.sp,
+            color: AppColors.primaryGreen,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricsGrid(WeatherData weather) {
+    return Row(
+      children: [
+        Expanded(child: _buildMetricTile('Humidity', '${weather.humidity.toStringAsFixed(0)}%', FontAwesomeIcons.droplet)),
+        SizedBox(width: 8.w),
+        Expanded(child: _buildMetricTile('Wind', '${weather.windSpeed.toStringAsFixed(0)} km/h', FontAwesomeIcons.wind)),
+        SizedBox(width: 8.w),
+        Expanded(child: _buildMetricTile('Pressure', '${weather.pressure.toStringAsFixed(0)} hPa', FontAwesomeIcons.gauge)),
+      ],
+    );
+  }
+
+  Widget _buildMetricTile(String label, String value, IconData icon) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          Icon(icon, size: 16.sp, color: AppColors.primaryGreen),
+          SizedBox(height: 6.h),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 11.sp,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForecastCard(List<WeatherForecast> forecast) {
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Forecast',
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          ...forecast.take(5).map(
+            (item) => Padding(
+              padding: EdgeInsets.symmetric(vertical: 7.h),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 92.w,
+                    child: Text(
+                      DateFormat('EEE, d MMM').format(item.date),
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  Icon(_getWeatherIcon(item.condition), size: 14.sp, color: AppColors.primaryGreen),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      item.condition,
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.textPrimary),
+                    ),
+                  ),
+                  Text(
+                    '${item.maxTemp.toStringAsFixed(0)}°/${item.minTemp.toStringAsFixed(0)}°',
                     style: GoogleFonts.poppins(
-                      fontSize: 14.sp,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                )),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -352,55 +428,89 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildSoilConditions() {
-    if (_weatherData == null) return SizedBox.shrink();
-    
+  Widget _buildAdvisorySection({
+    required String title,
+    required String summary,
+    required List<WeatherAdvisory> advisories,
+    required String emptyMessage,
+  }) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      padding: EdgeInsets.all(14.w),
+      decoration: _cardDecoration().copyWith(
+        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Soil Conditions',
+            title,
             style: GoogleFonts.poppins(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryGreenDark,
             ),
           ),
-          SizedBox(height: 12.h),
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
+          if (summary.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Text(
+              summary,
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                color: AppColors.textSecondary,
+              ),
             ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildSoilDetail('Moisture', '${_weatherData!.soilConditions.moisture.toStringAsFixed(0)}%', FontAwesomeIcons.droplet),
-                    _buildSoilDetail('Temperature', '${_weatherData!.soilConditions.temperature.toStringAsFixed(0)}°C', FontAwesomeIcons.temperatureHalf),
-                  ],
+          ],
+          SizedBox(height: 8.h),
+          if (advisories.isEmpty)
+            Text(
+              _llmError == null ? emptyMessage : 'AI advisories unavailable: $_llmError',
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ...advisories.map(
+            (item) => Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: _priorityColor(item.priority).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(
+                  color: _priorityColor(item.priority).withValues(alpha: 0.25),
                 ),
-                SizedBox(height: 12.h),
-                Text(
-                  _weatherData!.soilConditions.recommendation,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14.sp,
-                    color: AppColors.textSecondary,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${item.headline} • ${item.timeHorizon}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  SizedBox(height: 4.h),
+                  Text(
+                    item.advice,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.sp,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (item.reason.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    Text(
+                      item.reason,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.sp,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
@@ -408,108 +518,35 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildSoilDetail(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.primaryGreen, size: 20.sp),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12.sp,
-            color: AppColors.textSecondary,
-          ),
+  Color _priorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return AppColors.error;
+      case 'low':
+        return AppColors.success;
+      case 'medium':
+      default:
+        return AppColors.warning;
+    }
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(14.r),
+      boxShadow: const [
+        BoxShadow(
+          color: AppColors.shadowLight,
+          blurRadius: 8,
+          offset: Offset(0, 3),
         ),
       ],
-    );
-  }
-
-  Widget _buildCropRecommendations() {
-    if (_weatherData == null) return SizedBox.shrink();
-    
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Crop Recommendations',
-            style: GoogleFonts.poppins(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Suitable Crops:',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Wrap(
-                  spacing: 8.w,
-                  children: _weatherData!.cropRecommendations.suitableCrops.map((crop) => Chip(
-                    label: Text(crop),
-                    backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
-                    labelStyle: GoogleFonts.poppins(color: AppColors.primaryGreen),
-                  )).toList(),
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  'Irrigation Advice:',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  _weatherData!.cropRecommendations.irrigationAdvice,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14.sp,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildBottomNavigationBar() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
@@ -541,10 +578,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     final isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        // Navigate to different screens
+        setState(() => _selectedIndex = index);
         switch (index) {
           case 0:
             context.go('/home');
@@ -553,7 +587,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
             context.go('/marketplace');
             break;
           case 2:
-            // Already on weather screen
             break;
           case 3:
             context.go('/community');
@@ -577,7 +610,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
             style: GoogleFonts.poppins(
               fontSize: 12.sp,
               color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
         ],
@@ -586,34 +619,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   IconData _getWeatherIcon(String condition) {
-    switch (condition.toLowerCase()) {
-      case 'sunny':
-      case 'clear':
-        return FontAwesomeIcons.sun;
-      case 'cloudy':
-      case 'partly cloudy':
-        return FontAwesomeIcons.cloud;
-      case 'rainy':
-      case 'rain':
-        return FontAwesomeIcons.cloudRain;
-      case 'foggy':
-      case 'fog':
-        return FontAwesomeIcons.smog;
-      default:
-        return FontAwesomeIcons.cloud;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = date.difference(now).inDays;
-    
-    if (difference == 0) {
-      return 'Today';
-    } else if (difference == 1) {
-      return 'Tomorrow';
-    } else {
-      return '${date.day}/${date.month}';
-    }
+    final normalized = condition.toLowerCase();
+    if (normalized.contains('clear') || normalized.contains('sun')) return FontAwesomeIcons.sun;
+    if (normalized.contains('cloud') || normalized.contains('overcast')) return FontAwesomeIcons.cloud;
+    if (normalized.contains('rain') || normalized.contains('drizzle')) return FontAwesomeIcons.cloudRain;
+    if (normalized.contains('storm') || normalized.contains('thunder')) return FontAwesomeIcons.cloudBolt;
+    if (normalized.contains('fog')) return FontAwesomeIcons.smog;
+    if (normalized.contains('snow')) return FontAwesomeIcons.snowflake;
+    return FontAwesomeIcons.cloud;
   }
 }

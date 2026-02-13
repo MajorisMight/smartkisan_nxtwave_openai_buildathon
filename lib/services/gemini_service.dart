@@ -107,6 +107,22 @@ class GeminiService {
     return const [];
   }
 
+  static Future<Map<String, dynamic>> weatherAdvisories({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    if (_modelText == null) throw Exception('Gemini not initialized');
+    final resp = await _modelText!.generateContent(
+      [Content.text(_buildWeatherAdvisoryPrompt(contextData))],
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      ),
+    );
+    final text = resp.text ?? '{}';
+    return _safeJson(text);
+  }
+
   static String _buildDiseasePrompt(Map<String, dynamic> ctx) {
     //TODO: refine prompt after all the features and inputs are live.
     return '''
@@ -466,6 +482,37 @@ Return strict JSON array of objects {title, category: subsidy|insurance|loan|tra
 
 Profile JSON:
 $profile
+''';
+  }
+
+  static String _buildWeatherAdvisoryPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are a weather + farm operations advisor.
+Use the provided weather forecast and return ONLY valid JSON.
+
+JSON schema (strict):
+{
+  "summary": string,
+  "advisories": [
+    {
+      "headline": string,
+      "advice": string,
+      "reason": string,
+      "priority": "low" | "medium" | "high",
+      "category": "weather" | "irrigation" | "planting" | "spraying" | "pest" | "harvest",
+      "time_horizon": "today" | "1-3d" | "4-7d" | "8-16d"
+    }
+  ]
+}
+
+Rules:
+- Give 3 to 6 advisories.
+- Keep each "advice" concise and action-oriented.
+- Prioritize practical field decisions (irrigation, sowing, spraying, harvest timing).
+- No markdown, no explanation outside JSON.
+
+Context JSON:
+$ctx
 ''';
   }
 
