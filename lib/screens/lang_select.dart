@@ -98,7 +98,7 @@ class _LanguageSelectPageState extends State<LanguageSelectPage> {
     
     // 4. Navigate to the next screen
     if (AppConfigService.isAuthFlowEnabled()) {
-      context.go('/otp');
+      context.go('/login');
     } else {
       final onboarded = await SessionService.isOnboardingComplete();
       if (!mounted) return;

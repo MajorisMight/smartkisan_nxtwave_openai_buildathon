@@ -1,20 +1,20 @@
 class Remedy {
-  final String type; // organic, chemical
+  final String type;
   final String name;
   final String instruction;
-  final String? marketplaceQuery; // for deep linking
+  final String marketplaceQuery;
 
   Remedy({
     required this.type,
     required this.name,
     required this.instruction,
-    this.marketplaceQuery,
+    required this.marketplaceQuery,
   });
 }
 
 class DiseaseDetectionResult {
   final String diseaseName;
-  final double confidence; // 0..1
+  final double confidence;
   final List<Remedy> remedies;
 
   DiseaseDetectionResult({
@@ -23,5 +23,3 @@ class DiseaseDetectionResult {
     required this.remedies,
   });
 }
-
-

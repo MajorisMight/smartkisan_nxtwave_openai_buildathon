@@ -5,7 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/app_colors.dart';
-import '../utils/dummy_data.dart';
+import '../services/demo_data_service.dart';
 import '../services/session_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final farmer = DummyData.getDummyFarmers().first;
+    final farmer = DemoDataService.getDemoFarmer();
     
     return Scaffold(
       body: Container(
@@ -38,7 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 

@@ -1,313 +1,313 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+
 import '../models/community_post.dart';
-import '../services/community_service.dart';
+import 'profile_provider.dart';
 
-class CommunityProvider with ChangeNotifier {
-  List<CommunityPost> _posts = [];
-  List<CommunityPost> _filteredPosts = [];
-  bool _isLoading = false;
-  String? _error;
-  String _searchQuery = '';
-  String _selectedTopic = '';
+final postCategoryProvider = StateProvider<String>((ref) => 'All');
+final searchQueryProvider = StateProvider<String>((ref) => '');
 
-  // Getters
-  List<CommunityPost> get posts => _filteredPosts;
-  List<CommunityPost> get allPosts => _posts;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  String get searchQuery => _searchQuery;
-  String get selectedTopic => _selectedTopic;
+final communityPostsProvider = FutureProvider<List<CommunityPost>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) return const <CommunityPost>[];
 
-  // Initialize posts
-  Future<void> loadPosts() async {
-    _setLoading(true);
-    _clearError();
-    
+  final rawPosts = await supabase
+      .from('posts')
+      .select(
+        'id, farmer_id, category, title, content, image_urls, tags, likes_count, comments_count, created_at, '
+        'farmers:farmer_id(name, photo_url, village, district, state)',
+      )
+      .order('created_at', ascending: false);
+
+  final rawLikes = await supabase
+      .from('post_likes')
+      .select('post_id')
+      .eq('farmer_id', userId);
+
+  final likedPostIds = List<Map<String, dynamic>>.from(rawLikes as List)
+      .map((e) => e['post_id'].toString())
+      .toSet();
+
+  return List<Map<String, dynamic>>.from(rawPosts as List)
+      .map((row) => CommunityPost.fromRow(row, likedPostIds: likedPostIds))
+      .toList();
+});
+
+final filteredCommunityPostsProvider = Provider<List<CommunityPost>>((ref) {
+  final category = ref.watch(postCategoryProvider);
+  final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+  final posts = ref.watch(communityPostsProvider).valueOrNull ?? const [];
+
+  return posts.where((post) {
+    final categoryMatch = category == 'All' || post.category == category;
+    if (!categoryMatch) return false;
+    if (query.isEmpty) return true;
+
+    final searchableText = <String>[
+      post.title,
+      post.content,
+      post.category,
+      post.farmerName,
+      post.location,
+      ...post.tags,
+    ].join(' ').toLowerCase();
+
+    return searchableText.contains(query);
+  }).toList();
+});
+
+final commentsByPostProvider =
+    FutureProvider.family<List<CommunityComment>, String>((ref, postId) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final rows = await supabase
+      .from('comments')
+      .select(
+        'id, post_id, farmer_id, content, created_at, '
+        'farmers:farmer_id(name, photo_url)',
+      )
+      .eq('post_id', postId)
+      .order('created_at', ascending: false);
+
+  return List<Map<String, dynamic>>.from(rows as List)
+      .map(CommunityComment.fromRow)
+      .toList();
+});
+
+// Keeps community feed and comment counts in sync with DB changes.
+final communityRealtimeProvider = Provider<void>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+
+  final channel = supabase
+      .channel('community-realtime')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'posts',
+        callback: (_) {
+          ref.invalidate(communityPostsProvider);
+        },
+      )
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'post_likes',
+        callback: (_) {
+          ref.invalidate(communityPostsProvider);
+        },
+      )
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'comments',
+        callback: (payload) {
+          ref.invalidate(communityPostsProvider);
+          final postId = _extractPostIdFromPayload(payload);
+          if (postId != null && postId.isNotEmpty) {
+            ref.invalidate(commentsByPostProvider(postId));
+          }
+        },
+      )
+      .subscribe();
+
+  ref.onDispose(() {
+    supabase.removeChannel(channel);
+  });
+});
+
+class CommunityActionsNotifier extends StateNotifier<AsyncValue<void>> {
+  CommunityActionsNotifier(this.ref) : super(const AsyncValue.data(null));
+
+  final Ref ref;
+
+  // Creates a post and refreshes post list so UI shows latest data.
+  Future<void> createPost({
+    required String category,
+    required String title,
+    required String content,
+    List<String> tags = const [],
+    List<String> imageUrls = const [],
+    File? imageFile,
+  }) async {
+    final supabase = ref.read(supabaseClientProvider);
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    state = const AsyncValue.loading();
     try {
-      _posts = await CommunityService.getAllPosts();
-      _filteredPosts = _posts;
-      notifyListeners();
-    } catch (e) {
-      _setError('Failed to load posts: $e');
-    } finally {
-      _setLoading(false);
+      final urls = <String>[...imageUrls];
+      if (imageFile != null) {
+        final uploadedUrl = await _uploadPostImage(
+          supabase: supabase,
+          userId: user.id,
+          imageFile: imageFile,
+        );
+        if (uploadedUrl == null || uploadedUrl.isEmpty) {
+          throw Exception('Image upload failed');
+        }
+        urls.add(uploadedUrl);
+      }
+
+      await supabase.from('posts').insert({
+        'farmer_id': user.id,
+        'category': category,
+        'title': title,
+        'content': content,
+        'tags': tags,
+        'image_urls': urls,
+      });
+      ref.invalidate(communityPostsProvider);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
-  // Search posts
-  Future<void> searchPosts(String query) async {
-    _searchQuery = query;
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      if (query.isEmpty) {
-        _filteredPosts = _posts;
+  // Toggles like in pivot table and mirrors count in posts table.
+  Future<void> toggleLike(CommunityPost post) async {
+    final supabase = ref.read(supabaseClientProvider);
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      if (post.isLiked) {
+        await supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('farmer_id', user.id);
       } else {
-        _filteredPosts = await CommunityService.searchPosts(query);
+        await supabase.from('post_likes').insert({
+          'post_id': post.id,
+          'farmer_id': user.id,
+        });
       }
-      notifyListeners();
-    } catch (e) {
-      _setError('Search failed: $e');
-    } finally {
-      _setLoading(false);
-    }
+
+      final newCount = post.isLiked
+          ? (post.likesCount > 0 ? post.likesCount - 1 : 0)
+          : post.likesCount + 1;
+
+      await supabase
+          .from('posts')
+          .update({'likes_count': newCount})
+          .eq('id', post.id);
+
+      ref.invalidate(communityPostsProvider);
+    });
   }
 
-  // Filter by topic
-  Future<void> filterByTopic(String topic) async {
-    _selectedTopic = topic;
-    _setLoading(true);
-    _clearError();
-    
+  // Adds a comment and updates denormalized comments_count for quick list UI.
+  Future<void> addComment({
+    required String postId,
+    required String content,
+  }) async {
+    final supabase = ref.read(supabaseClientProvider);
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await supabase.from('comments').insert({
+        'post_id': postId,
+        'farmer_id': user.id,
+        'content': content,
+      });
+
+      final rows = await supabase
+          .from('comments')
+          .select('id')
+          .eq('post_id', postId);
+
+      await supabase
+          .from('posts')
+          .update({'comments_count': (rows as List).length})
+          .eq('id', postId);
+
+      ref.invalidate(communityPostsProvider);
+      ref.invalidate(commentsByPostProvider(postId));
+    });
+  }
+
+  Future<String?> _uploadPostImage({
+    required SupabaseClient supabase,
+    required String userId,
+    required File imageFile,
+  }) async {
+    final fileToUpload = await _compressForUpload(imageFile);
+    final ext = p.extension(fileToUpload.path).toLowerCase();
+    final fileExt = ext.isEmpty ? '.jpg' : ext;
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}$fileExt';
+    final filePath = '$userId/$fileName';
+
+    await supabase.storage.from('community').upload(
+          filePath,
+          fileToUpload,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+        );
+
+    return supabase.storage.from('community').getPublicUrl(filePath);
+  }
+
+  Future<File> _compressForUpload(File source) async {
     try {
-      if (topic.isEmpty) {
-        _filteredPosts = _posts;
-      } else {
-        _filteredPosts = await CommunityService.getPostsByTopic(topic);
+      final sourceSize = source.lengthSync();
+      final tempDir = await getTemporaryDirectory();
+      final targetPath =
+          p.join(tempDir.path, 'community_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final compressed = await FlutterImageCompress.compressAndGetFile(
+        source.path,
+        targetPath,
+        quality: 70,
+        minWidth: 1280,
+        minHeight: 1280,
+        format: CompressFormat.jpeg,
+      );
+
+      if (compressed == null) {
+        return source;
       }
-      notifyListeners();
-    } catch (e) {
-      _setError('Filter failed: $e');
-    } finally {
-      _setLoading(false);
+
+      final compressedFile = File(compressed.path);
+      final compressedSize = compressedFile.lengthSync();
+      final ratio =
+          sourceSize == 0 ? 0 : ((sourceSize - compressedSize) / sourceSize) * 100;
+      // ignore: avoid_print
+      print(
+        'Community image compressed: original=$sourceSize bytes, compressed=$compressedSize bytes, saved=${ratio.toStringAsFixed(1)}%',
+      );
+      return compressedFile;
+    } on MissingPluginException {
+      return source;
+    } on PlatformException {
+      return source;
+    } catch (_) {
+      return source;
     }
   }
+}
 
-  // Get post by ID
-  Future<CommunityPost?> getPostById(String id) async {
-    try {
-      return await CommunityService.getPostById(id);
-    } catch (e) {
-      _setError('Failed to get post: $e');
-      return null;
-    }
-  }
+final communityActionsProvider =
+    StateNotifierProvider<CommunityActionsNotifier, AsyncValue<void>>((ref) {
+  return CommunityActionsNotifier(ref);
+});
 
-  // Create post
-  Future<bool> createPost(CommunityPost post) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await CommunityService.createPost(post);
-      if (success) {
-        _posts.insert(0, post);
-        _filteredPosts = _posts;
-        notifyListeners();
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to create post: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
+String? _extractPostIdFromPayload(PostgresChangePayload payload) {
+  final newRecord = payload.newRecord;
+  final oldRecord = payload.oldRecord;
 
-  // Update post
-  Future<bool> updatePost(CommunityPost post) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await CommunityService.updatePost(post);
-      if (success) {
-        final index = _posts.indexWhere((p) => p.id == post.id);
-        if (index != -1) {
-          _posts[index] = post;
-          _filteredPosts = _posts;
-          notifyListeners();
-        }
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to update post: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
+  final fromNew = newRecord['post_id']?.toString();
+  if (fromNew != null && fromNew.isNotEmpty) return fromNew;
 
-  // Delete post
-  Future<bool> deletePost(String postId) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await CommunityService.deletePost(postId);
-      if (success) {
-        _posts.removeWhere((p) => p.id == postId);
-        _filteredPosts = _posts;
-        notifyListeners();
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to delete post: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
+  final fromOld = oldRecord['post_id']?.toString();
+  if (fromOld != null && fromOld.isNotEmpty) return fromOld;
 
-  // Toggle like
-  Future<bool> toggleLike(String postId, String userId) async {
-    try {
-      final success = await CommunityService.toggleLike(postId, userId);
-      if (success) {
-        final index = _posts.indexWhere((p) => p.id == postId);
-        if (index != -1) {
-          final post = _posts[index];
-          _posts[index] = CommunityPost(
-            id: post.id,
-            farmerId: post.farmerId,
-            farmerName: post.farmerName,
-            farmerImage: post.farmerImage,
-            title: post.title,
-            content: post.content,
-            category: post.category,
-            images: post.images,
-            tags: post.tags,
-            likes: post.likes + 1,
-            comments: post.comments,
-            shares: post.shares,
-            isLiked: true,
-            createdAt: post.createdAt,
-            updatedAt: post.updatedAt,
-            commentsList: post.commentsList,
-            location: post.location,
-            isVerified: post.isVerified,
-          );
-          _filteredPosts = _posts;
-          notifyListeners();
-        }
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to toggle like: $e');
-      return false;
-    }
-  }
-
-  // Add comment
-  Future<bool> addComment(String postId, String userId, String comment) async {
-    try {
-      final success = await CommunityService.addComment(postId, userId, comment);
-      if (success) {
-        final index = _posts.indexWhere((p) => p.id == postId);
-        if (index != -1) {
-          final post = _posts[index];
-          _posts[index] = CommunityPost(
-            id: post.id,
-            farmerId: post.farmerId,
-            farmerName: post.farmerName,
-            farmerImage: post.farmerImage,
-            title: post.title,
-            content: post.content,
-            category: post.category,
-            images: post.images,
-            tags: post.tags,
-            likes: post.likes,
-            comments: post.comments + 1,
-            shares: post.shares,
-            isLiked: post.isLiked,
-            createdAt: post.createdAt,
-            updatedAt: post.updatedAt,
-            commentsList: post.commentsList,
-            location: post.location,
-            isVerified: post.isVerified,
-          );
-          _filteredPosts = _posts;
-          notifyListeners();
-        }
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to add comment: $e');
-      return false;
-    }
-  }
-
-  // Get comments
-  Future<List<Map<String, dynamic>>> getComments(String postId) async {
-    try {
-      return await CommunityService.getComments(postId);
-    } catch (e) {
-      _setError('Failed to get comments: $e');
-      return [];
-    }
-  }
-
-  // Get trending posts
-  Future<List<CommunityPost>> getTrendingPosts() async {
-    try {
-      return await CommunityService.getTrendingPosts();
-    } catch (e) {
-      _setError('Failed to get trending posts: $e');
-      return [];
-    }
-  }
-
-  // Get recent posts
-  Future<List<CommunityPost>> getRecentPosts() async {
-    try {
-      return await CommunityService.getRecentPosts();
-    } catch (e) {
-      _setError('Failed to get recent posts: $e');
-      return [];
-    }
-  }
-
-  // Get user posts
-  Future<List<CommunityPost>> getUserPosts(String userId) async {
-    try {
-      return await CommunityService.getUserPosts(userId);
-    } catch (e) {
-      _setError('Failed to get user posts: $e');
-      return [];
-    }
-  }
-
-  // Report post
-  Future<bool> reportPost(String postId, String reason) async {
-    try {
-      return await CommunityService.reportPost(postId, reason);
-    } catch (e) {
-      _setError('Failed to report post: $e');
-      return false;
-    }
-  }
-
-  // Clear filters
-  void clearFilters() {
-    _searchQuery = '';
-    _selectedTopic = '';
-    _filteredPosts = _posts;
-    notifyListeners();
-  }
-
-  // Refresh posts
-  Future<void> refresh() async {
-    await loadPosts();
-  }
-
-  // Helper methods
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _error = null;
-    notifyListeners();
-  }
-
-  void clearError() {
-    _clearError();
-  }
+  return null;
 }

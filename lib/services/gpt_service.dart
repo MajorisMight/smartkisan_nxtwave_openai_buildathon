@@ -120,23 +120,6 @@ class GptService {
     return extracted;
   }
 
-  static Future<Map<String, dynamic>> weatherAdvisories({
-    required Map<String, dynamic> contextData,
-  }) async {
-    await ensureInitialized();
-    final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
-      messages: [
-        {'role': 'user', 'content': _buildWeatherAdvisoryPrompt(contextData)},
-      ],
-      temperature: 0.1,
-    );
-    return _safeJson(content);
-  }
-
   static Future<String> _chatCompletion({
     required String model,
     required List<Map<String, dynamic>> messages,
@@ -248,37 +231,6 @@ Return strict JSON ARRAY of objects:
 {"title": string, "category": "subsidy"|"insurance"|"loan"|"training", "state": string, "description": string, "eligibilityTags": [string], "steps": [string]}
 Profile:
 $profile
-''';
-  }
-
-  static String _buildWeatherAdvisoryPrompt(Map<String, dynamic> ctx) {
-    return '''
-You are a weather + farm operations advisor.
-Use the provided weather forecast and return ONLY valid JSON.
-
-JSON schema (strict):
-{
-  "summary": string,
-  "advisories": [
-    {
-      "headline": string,
-      "advice": string,
-      "reason": string,
-      "priority": "low" | "medium" | "high",
-      "category": "weather" | "irrigation" | "planting" | "spraying" | "pest" | "harvest",
-      "time_horizon": "today" | "1-3d" | "4-7d" | "8-16d"
-    }
-  ]
-}
-
-Rules:
-- Give 3 to 6 advisories.
-- Keep each "advice" concise and action-oriented.
-- Prioritize practical field decisions (irrigation, sowing, spraying, harvest timing).
-- No markdown, no explanation outside JSON.
-
-Context JSON:
-$ctx
 ''';
   }
 

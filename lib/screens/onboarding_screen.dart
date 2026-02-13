@@ -5,11 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_colors.dart';
 import '../services/session_service.dart';
-import 'package:provider/provider.dart';
-import '../models/onboarding_profile.dart';
-import '../providers/profile_provider.dart';
 import 'package:kisan/l10n/app_localizations.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -73,12 +71,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final map = _draft.toMap();
       //saving to sharedPreferences
       await SessionService.saveOnboardingDraft(map);
-      final profile = FarmerProfile.fromDraft(map);
-      final provider = context.read<ProfileProvider>();
-      await provider.saveProfile(profile);
+      await _saveProfileToSupabase(map);
       await SessionService.setOnboardingComplete(true);
       context.go('/home');
     }
+  }
+
+  Future<void> _saveProfileToSupabase(Map<String, dynamic> map) async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) return;
+
+    await client.from('farmers').upsert({
+      'id': user.id,
+      'name': (map['name'] ?? '').toString(),
+      'language_pref': (map['language'] ?? '').toString(),
+      'experience_level': (map['experienceLevel'] ?? '').toString(),
+      'social_category': (map['socialCategory'] ?? '').toString(),
+      'phone_number': (map['phone'] ?? '').toString(),
+    });
   }
 
   void _back() {

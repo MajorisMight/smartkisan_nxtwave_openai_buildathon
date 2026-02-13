@@ -1,335 +1,191 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kisan/providers/auth_provider.dart';
+import 'package:kisan/providers/auth_repository.dart'; // Assuming you have this from previous setup
 import '../constants/app_colors.dart';
 
-class LoginScreen extends StatefulWidget {
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
-  bool _isLoading = false;
-  bool _rememberMe = false;
+  // The UI now starts in "Log In" mode by default.
+  bool _isSignUp = false;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-      // Simulate API call
-      await Future.delayed(Duration(seconds: 2));
+    if (email.isEmpty || password.isEmpty) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+    final notifier = ref.read(authProvider.notifier);
+    if (_isSignUp) {
+      await notifier.signUp(email, password, context);
 
+      // **CHANGE**: After sign up, switch UI to login mode.
+      // The banner will appear automatically via the state provider.
       if (mounted) {
-        context.go('/home');
+        setState(() {
+          _isSignUp = false;
+        });
       }
+    } else {
+      await notifier.signIn(email, password);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (_, state) {
+      if (state.hasError && !state.isLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.error.toString())),
+        );
+      }
+    });
+
+    final authState = ref.watch(authProvider);
+    // **CHANGE**: Watch the provider to decide if the banner should be shown.
+    final pendingEmail = ref.watch(pendingEmailConfirmationProvider);
+    final currentUser = ref.watch(authRepositoryProvider).currentUser;
+
+    // The banner is shown if our provider has a pending email,
+    // or if there's a logged-in user whose email is not confirmed.
+    final hasUnconfirmedEmail =
+        currentUser != null && currentUser.emailConfirmedAt == null;
+    final showEmailPending = pendingEmail != null || hasUnconfirmedEmail;
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.all(24.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: 60.h),
-                
-                // Logo and Welcome Text
-                Center(
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 80.w,
-                        height: 80.w,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.shadowLight,
-                              blurRadius: 10,
-                              offset: Offset(0, 5),
+                SizedBox(height: 40.h),
+                _buildHeader(),
+
+                // **CHANGE**: Added the confirmation banner here.
+                if (showEmailPending) ...[
+                  SizedBox(height: 24.h),
+                  Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(8.r),
+                      border: Border.all(color: Colors.orange[300]!),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.email,
+                                color: Colors.orange[800], size: 20.w),
+                            SizedBox(width: 12.w),
+                            Text(
+                              'Confirm Your Email',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange[800],
+                              ),
                             ),
                           ],
                         ),
-                        child: Icon(
-                          Icons.agriculture,
-                          size: 40.sp,
-                          color: AppColors.white,
+                        SizedBox(height: 8.h),
+                        Text(
+                          'A confirmation link has been sent to ${pendingEmail ?? currentUser?.email}. Please click the link to verify your account, then log in to continue.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                              fontSize: 13.sp, color: Colors.orange[700]),
                         ),
-                      ),
-                      SizedBox(height: 24.h),
-                      Text(
-                        'Welcome Back!',
-                        style: GoogleFonts.poppins(
-                          fontSize: 28.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Sign in to continue to Kisan',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                ],
+
+                SizedBox(height: 32.h),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon:
+                          Icon(Icons.email, color: AppColors.primaryGreen),
+                      hintStyle: GoogleFonts.poppins(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                ),
+                SizedBox(height: 16.h),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon:
+                          Icon(Icons.lock, color: AppColors.primaryGreen),
+                      hintStyle: GoogleFonts.poppins(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                ),
+                SizedBox(height: 24.h),
+                SizedBox(
+                  height: 52.h,
+                  child: ElevatedButton(
+                    onPressed: authState.isLoading ? null : _submit,
+                    child: authState.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(_isSignUp ? 'Sign Up' : 'Log In',
+                            style: GoogleFonts.poppins(fontSize: 16.sp)),
                   ),
                 ),
-                
-                SizedBox(height: 48.h),
-                
-                // Login Form
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Phone Number Field
-                      TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Phone Number',
-                          hintText: '+91 9876543210',
-                          prefixIcon: Icon(Icons.phone, color: AppColors.primaryGreen),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.borderLight),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.borderLight),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
-                          ),
-                          filled: true,
-                          fillColor: AppColors.white,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your phone number';
-                          }
-                          if (value.length < 10) {
-                            return 'Please enter a valid phone number';
-                          }
-                          return null;
-                        },
-                      ),
-                      
-                      SizedBox(height: 20.h),
-                      
-                      // Password Field
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          hintText: 'Enter your password',
-                          prefixIcon: Icon(Icons.lock, color: AppColors.primaryGreen),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                              color: AppColors.textSecondary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.borderLight),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.borderLight),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                            borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
-                          ),
-                          filled: true,
-                          fillColor: AppColors.white,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                      
-                      SizedBox(height: 16.h),
-                      
-                      // Remember Me & Forgot Password
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _rememberMe,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _rememberMe = value ?? false;
-                                  });
-                                },
-                                activeColor: AppColors.primaryGreen,
-                              ),
-                              Text(
-                                'Remember me',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14.sp,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // Handle forgot password
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                color: AppColors.primaryGreen,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 32.h),
-                      
-                      // Login Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56.h,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                            foregroundColor: AppColors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            elevation: 2,
-                          ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.w,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.white,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  'Sign In',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      
-                      SizedBox(height: 24.h),
-                      
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: AppColors.borderLight)),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            child: Text(
-                              'OR',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: AppColors.borderLight)),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 24.h),
-                      
-                      // Register Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Don't have an account? ",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.sp,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // Navigate to registration
-                            },
-                            child: Text(
-                              'Sign Up',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                color: AppColors.primaryGreen,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                SizedBox(height: 12.h),
+                TextButton(
+                  onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                  child: Text(_isSignUp
+                      ? 'Already have an account? Log In'
+                      : 'Don\'t have an account? Sign Up'),
                 ),
-                
-                SizedBox(height: 40.h),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Icon(Icons.person, size: 80.w, color: AppColors.primaryGreen),
+        SizedBox(height: 16.h),
+        Text(_isSignUp ? 'Create Account' : 'Welcome Back',
+            style: GoogleFonts.poppins(
+                fontSize: 24.sp, fontWeight: FontWeight.w700)),
+        SizedBox(height: 6.h),
+        Text(_isSignUp ? 'Join the community' : 'Log in to continue',
+            style: GoogleFonts.poppins(
+                fontSize: 14.sp, color: AppColors.textSecondary)),
+      ],
     );
   }
 }

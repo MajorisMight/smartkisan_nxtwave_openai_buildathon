@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../constants/app_colors.dart';
 import '../models/crop.dart';
+import '../models/crop_action.dart';
 import '../providers/profile_provider.dart';
 import 'fertilizer_screen.dart';
 
@@ -528,6 +529,8 @@ class _CropsScreenState extends State<CropsScreen> {
       cropLogs.insert(
         0,
         CropAction(
+          id: now.millisecondsSinceEpoch,
+          farmCropId: int.tryParse(widget.crop.id) ?? 0,
           date: now,
           action: 'Irrigated',
           notes: 'Marked complete from Action Center',
@@ -690,9 +693,16 @@ class _CropsScreenState extends State<CropsScreen> {
                   return;
                 }
                 setState(() {
+                  final now = DateTime.now();
                   cropLogs.insert(
                     0,
-                    CropAction(date: DateTime.now(), action: text, notes: ''),
+                    CropAction(
+                      id: now.millisecondsSinceEpoch,
+                      farmCropId: int.tryParse(widget.crop.id) ?? 0,
+                      date: now,
+                      action: text,
+                      notes: '',
+                    ),
                   );
                 });
                 Navigator.of(context).pop();

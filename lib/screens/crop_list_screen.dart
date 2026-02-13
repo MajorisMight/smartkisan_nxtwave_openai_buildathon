@@ -1,51 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/app_colors.dart';
 import '../constants/crop_options.dart';
 import '../models/crop.dart';
+import '../providers/crop_provider.dart';
 import '../services/session_service.dart';
 import 'crops_screen.dart';
-import '../services/demo_data_service.dart';
 
-class CropListScreen extends StatefulWidget {
+class CropListScreen extends ConsumerStatefulWidget {
   const CropListScreen({super.key});
 
   @override
-  State<CropListScreen> createState() => _CropListScreenState();
+  ConsumerState<CropListScreen> createState() => _CropListScreenState();
 }
 
-class _CropListScreenState extends State<CropListScreen> {
-  List<Crop> crops = [];
-  List<Crop> filteredCrops = [];
+class _CropListScreenState extends ConsumerState<CropListScreen> {
   TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // _loadCrops();
-    searchController.addListener(_filterCrops);
+    searchController.addListener(() {
+      ref.read(cropSearchQueryProvider.notifier).state =
+          searchController.text.trim();
+    });
   }
 
   @override
   void dispose() {
     searchController.dispose();
     super.dispose();
-  }
-
-  void _loadCrops() {
-    // Load demo crops data
-    crops = DemoDataService.getDemoCrops();
-    filteredCrops = List.from(crops);
-  }
-
-  void _filterCrops() {
-    String query = searchController.text.toLowerCase();
-    setState(() {
-      filteredCrops =
-          crops.where((crop) {
-            return crop.name.toLowerCase().contains(query);
-          }).toList();
-    });
   }
 
   @override
@@ -155,15 +140,33 @@ class _CropListScreenState extends State<CropListScreen> {
   }
 
   Widget _buildCropList() {
-    if (filteredCrops.isEmpty) {
-      return _buildEmptyState();
-    }
+    final cropsAsync = ref.watch(cropsProvider);
+    final filteredCrops = ref.watch(filteredCropsProvider);
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: filteredCrops.length,
-      itemBuilder: (context, index) {
-        return _buildCropCard(filteredCrops[index]);
+    return cropsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(
+            'Unable to load crops.\n$e',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      ),
+      data: (_) {
+        if (filteredCrops.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: filteredCrops.length,
+          itemBuilder: (context, index) {
+            return _buildCropCard(filteredCrops[index]);
+          },
+        );
       },
     );
   }
@@ -298,10 +301,7 @@ class _CropListScreenState extends State<CropListScreen> {
 
     if (newCrop == null) return;
 
-    setState(() {
-      crops.add(newCrop);
-      filteredCrops = List.from(crops);
-    });
+    ref.invalidate(cropsProvider);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -312,6 +312,7 @@ class _CropListScreenState extends State<CropListScreen> {
   }
 
   void _showCropStats() {
+    final crops = ref.read(cropsProvider).valueOrNull ?? const <Crop>[];
     showDialog(
       context: context,
       builder:
@@ -371,20 +372,21 @@ class _CropListScreenState extends State<CropListScreen> {
   }
 }
 
-class AddCropPage extends StatefulWidget {
+class AddCropPage extends ConsumerStatefulWidget {
   const AddCropPage({super.key});
 
   @override
-  State<AddCropPage> createState() => _AddCropPageState();
+  ConsumerState<AddCropPage> createState() => _AddCropPageState();
 }
 
-class _AddCropPageState extends State<AddCropPage> {
+class _AddCropPageState extends ConsumerState<AddCropPage> {
   final _formKey = GlobalKey<FormState>();
   final _labelController = TextEditingController();
   final _typeController = TextEditingController();
   final _landController = TextEditingController();
   final List<String> _areaUnits = const ['Acre', 'Hectare', 'Beegha', 'KM2'];
   String _selectedAreaUnit = 'Acre';
+  bool _isSubmitting = false;
 
   DateTime _selectedDate = DateTime.now();
   final List<String> _cropTypes = CropOptions.supportedCropTypes;
@@ -497,9 +499,34 @@ class _AddCropPageState extends State<AddCropPage> {
   }
   
   Future<void> _submit() async {
+    if (_isSubmitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final landValue = double.tryParse(_landController.text.trim());
     if (landValue == null || landValue <= 0) return;
+    setState(() => _isSubmitting = true);
+
+    final cropName = _labelController.text.trim();
+    final cropType = _typeController.text.trim();
+    final areaAcres = _convertToAcres(landValue, _selectedAreaUnit);
+
+    int? farmId;
+    try {
+      farmId = await ref.read(cropListNotifierProvider.notifier).addCrop(
+        name: cropName,
+        cropType: cropType,
+        area: areaAcres,
+        sowDate: _selectedDate,
+        stage: 'sowing',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to save crop to server.')),
+      );
+      return;
+    }
+
     final address = await SessionService.getUserAddress();
     if (!mounted) return;
     final location = [
@@ -509,16 +536,17 @@ class _AddCropPageState extends State<AddCropPage> {
     ].where((v) => v != null && v.trim().isNotEmpty).join(', ');
 
     final newCrop = Crop(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _labelController.text.trim(),
-      type: _typeController.text.trim(),
+      id: (farmId ?? DateTime.now().millisecondsSinceEpoch).toString(),
+      name: cropName,
+      type: cropType,
       sowDate: _selectedDate,
       stage: 'sowing',
-      areaAcres: _convertToAcres(landValue, _selectedAreaUnit),
+      areaAcres: areaAcres,
       actionsHistory: const [],
       location: location.isEmpty ? 'Not provided' : location,
     );
 
+    setState(() => _isSubmitting = false);
     Navigator.pop(context, newCrop);
   }
 
@@ -639,13 +667,23 @@ class _AddCropPageState extends State<AddCropPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
                     foregroundColor: AppColors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Add Crop'),
+                  child:
+                      _isSubmitting
+                          ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.white,
+                            ),
+                          )
+                          : const Text('Add Crop'),
                 ),
               ),
             ],

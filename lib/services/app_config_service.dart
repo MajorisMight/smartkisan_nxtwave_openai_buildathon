@@ -5,7 +5,8 @@ class AppConfigService {
   static bool isAuthFlowEnabled() {
     final rawValue = dotenv.env['AUTH_FLOW_ENABLED'];
     if (rawValue == null) return true;
-    return rawValue.toLowerCase() == 'true';
+    const truthy = {'1', 'true', 'yes', 'y', 'on'};
+    return truthy.contains(rawValue.trim().toLowerCase());
   }
 
   /// If true, clears all local persisted data at startup.

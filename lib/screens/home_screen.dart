@@ -1,60 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:kisan/services/demo_data_service.dart';
 import '../constants/app_colors.dart';
+import '../utils/dummy_data.dart';
 import 'package:provider/provider.dart';
-import '../models/onboarding_profile.dart';
-import '../models/weather.dart';
+import '../models/profile.dart' as db_profile;
 import '../providers/profile_provider.dart';
-import '../services/weather_service.dart';
 import 'fertilizer_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
-  String _userName = '';
-  String _weatherLocation = '';
-  Future<WeatherData>? _weatherFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserName();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final profile = context.read<ProfileProvider>().profile;
-    final nextLocation = _resolveWeatherLocation(profile);
-    if (_weatherFuture == null || _weatherLocation != nextLocation) {
-      _weatherLocation = nextLocation;
-      _weatherFuture =
-          _weatherLocation.isEmpty
-              ? null
-              : WeatherService.getCurrentWeather(_weatherLocation);
-    }
-  }
-
-  Future<void> _loadUserName() async {
-    // Use demo farmer name for realistic demo
-    final demoFarmer = DemoDataService.getDemoFarmer();
-    setState(() {
-      _userName = demoFarmer.name;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(fullProfileProvider);
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -65,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
+                _buildHeader(profileAsync),
                 _buildQuickActions(),
                 _buildWeatherStrip(),
                 SizedBox(height: 20.h),
@@ -74,16 +44,39 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
-  Widget _buildHeader() {
-    final profile = context.watch<ProfileProvider>().profile;
-    final name = (profile?.name?.isNotEmpty == true) ? profile!.name! : (_userName.isNotEmpty ? _userName : 'Farmer');
-    final farmLine = (profile?.village != null && profile!.village!.isNotEmpty)
-        ? profile.village!
-        : 'Ujjwal Greens';
+  Widget _buildHeader(AsyncValue<db_profile.FarmerProfile> profileAsync) {
+    final localProfile = context.watch<ProfileProvider>().profile;
+    final nameFromLocal = localProfile?.name?.trim();
+    final farmFromLocal = localProfile?.village?.trim();
+
+    String name =
+        (nameFromLocal != null && nameFromLocal.isNotEmpty)
+            ? nameFromLocal
+            : 'Farmer';
+    String farmLine =
+        (farmFromLocal != null && farmFromLocal.isNotEmpty)
+            ? farmFromLocal
+            : 'Farm not set';
+
+    profileAsync.whenData((profile) {
+      final supaName = profile.name.trim();
+      if (supaName.isNotEmpty) {
+        name = supaName;
+      }
+      if (profile.farms.isNotEmpty) {
+        final farm = profile.farms.first;
+        final parts =
+            [farm.village, farm.district, farm.state]
+                .where((e) => e.trim().isNotEmpty && e != 'N/A')
+                .toList();
+        if (parts.isNotEmpty) {
+          farmLine = parts.join(', ');
+        }
+      }
+    });
     return Container(
       padding: EdgeInsets.all(20.w),
       child: Row(
@@ -180,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _buildStatItem(
               'Active Orders',
               '12',
-              FontAwesomeIcons.shoppingCart,
+              FontAwesomeIcons.cartShopping,
               AppColors.info,
             ),
           ),
@@ -428,133 +421,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWeatherStrip() {
-    if (_weatherLocation.isEmpty) {
-      return Container(
-        margin: EdgeInsets.symmetric(horizontal: 20.w),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.borderLight),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36.w,
-              height: 36.w,
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Icon(
-                Icons.location_off_outlined,
-                color: AppColors.warning,
-                size: 18.sp,
-              ),
+    final weather = DummyData.getDummyWeatherData();
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8.r),
             ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                'No location added',
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+            child: Icon(
+              Icons.wb_sunny,
+              color: AppColors.warning,
+              size: 18.sp,
             ),
-            TextButton(
-              onPressed: () => context.go('/weather'),
-              child: Text(
-                'Details',
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  color: AppColors.primaryGreen,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return FutureBuilder<WeatherData>(
-      future: _weatherFuture,
-      builder: (context, snapshot) {
-        final hasData = snapshot.hasData;
-        final weather = snapshot.data;
-        final weatherText =
-            hasData
-                ? 'Today: ${weather!.temperature.toInt()}°C • ${weather.condition} • Humidity ${weather.humidity.toInt()}%'
-                : (snapshot.hasError
-                    ? 'Weather unavailable for $_weatherLocation'
-                    : 'Loading weather for $_weatherLocation...');
-
-        return Container(
-          margin: EdgeInsets.symmetric(horizontal: 20.w),
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.borderLight),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 36.w,
-                height: 36.w,
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  _weatherIcon(weather?.condition),
-                  color: AppColors.warning,
-                  size: 18.sp,
-                ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              'Today: ${weather.temperature.toInt()}°C • ${weather.condition} • Humidity ${weather.humidity.toInt()}%',
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Text(
-                  weatherText,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () => context.go('/weather'),
-                child: Text(
-                  'Details',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12.sp,
-                    color: AppColors.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
+          TextButton(
+            onPressed: () => context.go('/weather'),
+            child: Text(
+              'Details',
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
-  }
-
-  String _resolveWeatherLocation(FarmerProfile? profile) {
-    return (profile?.village ?? '').trim();
-  }
-
-  IconData _weatherIcon(String? condition) {
-    final normalized = (condition ?? '').toLowerCase();
-    if (normalized.contains('clear') || normalized.contains('sun')) return Icons.wb_sunny;
-    if (normalized.contains('cloud') || normalized.contains('overcast')) return Icons.cloud;
-    if (normalized.contains('rain') || normalized.contains('drizzle')) return Icons.grain;
-    if (normalized.contains('storm') || normalized.contains('thunder')) return Icons.thunderstorm;
-    if (normalized.contains('fog')) return Icons.foggy;
-    return Icons.wb_sunny;
   }
 
   Widget _buildRecentOrders() {
