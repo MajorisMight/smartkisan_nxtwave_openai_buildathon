@@ -4,6 +4,8 @@ import '../constants/app_colors.dart';
 import '../constants/crop_options.dart';
 import '../models/crop.dart';
 import '../services/session_service.dart';
+import 'crop_suggestion_screen.dart';
+import 'crop_suggestion_results_screen.dart';
 import 'crops_screen.dart';
 import '../services/demo_data_service.dart';
 
@@ -18,12 +20,16 @@ class _CropListScreenState extends State<CropListScreen> {
   List<Crop> crops = [];
   List<Crop> filteredCrops = [];
   TextEditingController searchController = TextEditingController();
+  bool _bootSuggestHandledInMemory = false;
 
   @override
   void initState() {
     super.initState();
     // _loadCrops();
     searchController.addListener(_filterCrops);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeOpenSuggestOnFirstBoot();
+    });
   }
 
   @override
@@ -66,11 +72,29 @@ class _CropListScreenState extends State<CropListScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCropDialog,
-        backgroundColor: AppColors.primaryGreen,
-        child: const Icon(Icons.add, color: AppColors.white),
-      ),
+      floatingActionButton:
+          crops.isNotEmpty
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'suggest_crop_btn',
+                    onPressed: _showCropSuggestionPage,
+                    backgroundColor: AppColors.secondaryOrange,
+                    foregroundColor: AppColors.white,
+                    child: const Icon(Icons.auto_awesome),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton(
+                    heroTag: 'add_crop_btn',
+                    onPressed: _showAddCropDialog,
+                    backgroundColor: AppColors.primaryGreen,
+                    child: const Icon(Icons.add, color: AppColors.white),
+                  ),
+                ],
+              )
+              : null,
     );
   }
 
@@ -226,12 +250,13 @@ class _CropListScreenState extends State<CropListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final isTrulyEmpty = crops.isEmpty;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            'No crops found',
+            'No crops yet',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -240,26 +265,50 @@ class _CropListScreenState extends State<CropListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            searchController.text.isNotEmpty
-                ? 'Try adjusting your search terms'
-                : 'Add your first crop to get started',
+            isTrulyEmpty
+                ? 'Add your first crop or get AI crop suggestions'
+                : 'No results for this search',
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _showAddCropDialog,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Crop'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          if (isTrulyEmpty) ...[
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _showCropSuggestionPage,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Suggest Crop'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondaryOrange,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _showAddCropDialog,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Crop'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -308,6 +357,63 @@ class _CropListScreenState extends State<CropListScreen> {
         content: Text('${newCrop.name} added successfully!'),
         backgroundColor: AppColors.success,
       ),
+    );
+  }
+
+  Future<void> _showCropSuggestionPage() async {
+    final cached = await SessionService.getCropSuggestionCache();
+    if (!mounted) return;
+
+    final suggestionsRaw = cached?['suggestions'];
+    final cachedSuggestions =
+        suggestionsRaw is List
+            ? suggestionsRaw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList()
+            : <Map<String, dynamic>>[];
+
+    if (cached != null && cachedSuggestions.isNotEmpty) {
+      final landArea =
+          (cached['land_area_acres'] is num)
+              ? (cached['land_area_acres'] as num).toDouble()
+              : double.tryParse('${cached['land_area_acres']}') ?? 0.0;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => CropSuggestionResultsScreen(
+                location: cached['location']?.toString() ?? '',
+                season: cached['season']?.toString() ?? 'Rabi',
+                landAreaAcres: landArea,
+                overallSummary:
+                    cached['overall_summary']?.toString() ??
+                    'Previously generated crop suggestions.',
+                suggestions: cachedSuggestions,
+              ),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CropSuggestionScreen()),
+    );
+  }
+
+  Future<void> _maybeOpenSuggestOnFirstBoot() async {
+    if (_bootSuggestHandledInMemory) return;
+    _bootSuggestHandledInMemory = true;
+
+    final seen = await SessionService.isCropSuggestBootSeen();
+    if (seen || !mounted) return;
+
+    await SessionService.setCropSuggestBootSeen(true);
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CropSuggestionScreen()),
     );
   }
 
@@ -495,7 +601,7 @@ class _AddCropPageState extends State<AddCropPage> {
       _typeController.text = selected;
     });
   }
-  
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final landValue = double.tryParse(_landController.text.trim());
@@ -580,9 +686,10 @@ class _AddCropPageState extends State<AddCropPage> {
                           Expanded(
                             child: TextFormField(
                               controller: _landController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Sown Area',
                                 hintText: 'e.g., 2.5',

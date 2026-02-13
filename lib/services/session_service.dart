@@ -8,6 +8,8 @@ class SessionService {
   static const String _userAddressKey = 'user_address';
   static const String _onboardingDraftKey = 'onboarding_draft';
   static const String _profileKey = 'farmer_profile_v1';
+  static const String _cropSuggestionCacheKey = 'crop_suggestion_cache_v1';
+  static const String _cropSuggestBootSeenKey = 'crop_suggest_boot_seen_v1';
   static const _languageCodeKey = 'languageCode';
   static const _languageSelectedKey = 'languageSelected';
 
@@ -19,20 +21,18 @@ class SessionService {
     await prefs.setString(_languageCodeKey, languageCode);
     await prefs.setBool(_languageSelectedKey, true);
   }
+
   /// Retrieves the saved language code. Returns null if none is saved.
   static Future<String?> getLanguagePreference() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_languageCodeKey);
   }
-  
+
   /// Checks if the user has ever selected a language.
   static Future<bool> isLanguageSelected() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_languageSelectedKey) ?? false;
   }
-
-
-
 
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
@@ -130,6 +130,39 @@ class SessionService {
     } catch (_) {
       return null;
     }
+  }
+
+  static Future<void> saveCropSuggestionCache(
+    Map<String, dynamic> cache,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cropSuggestionCacheKey, jsonEncode(cache));
+  }
+
+  static Future<Map<String, dynamic>?> getCropSuggestionCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getString(_cropSuggestionCacheKey);
+    if (s == null) return null;
+    try {
+      return jsonDecode(s) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> clearCropSuggestionCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cropSuggestionCacheKey);
+  }
+
+  static Future<bool> isCropSuggestBootSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_cropSuggestBootSeenKey) ?? false;
+  }
+
+  static Future<void> setCropSuggestBootSeen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_cropSuggestBootSeenKey, value);
   }
 
   /// Clears all locally persisted app data so the next launch behaves like a

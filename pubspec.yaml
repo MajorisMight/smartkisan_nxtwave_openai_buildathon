@@ -114,5 +114,5 @@ flutter:
     - assets/images/
     - .env
     - lib/constants/crop_profiles.json
+    - lib/constants/rainfall_normals.json
   
-

@@ -10,6 +10,7 @@ import '../constants/app_colors.dart';
 import '../models/onboarding_profile.dart';
 import '../models/weather.dart';
 import '../providers/profile_provider.dart';
+import '../services/weather_advisor_cache_service.dart';
 import '../services/weather_advisor_service.dart';
 import '../services/weather_service.dart';
 
@@ -25,10 +26,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
   String _activeQueryLocation = '';
 
   int _selectedIndex = 2;
-  bool _loading = false;
+  bool _weatherLoading = false;
+  bool _aiLoading = false;
   WeatherData? _weatherData;
   List<WeatherAdvisory> _llmAdvisories = [];
   String _llmSummary = '';
+  DateTime? _llmCachedAt;
   String? _llmError;
   String? _error;
 
@@ -42,11 +45,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
       _locationController.text = location;
       if (location.isEmpty) {
         setState(() {
-          _loading = false;
+          _weatherLoading = false;
+          _aiLoading = false;
           _weatherData = null;
           _error = null;
           _llmError = null;
           _llmSummary = '';
+          _llmCachedAt = null;
           _llmAdvisories = const [];
         });
       } else {
@@ -64,60 +69,127 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   Future<void> _loadWeather({String? location}) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
     final query = (location ?? _locationController.text).trim();
     if (query.isEmpty) {
       debugPrint('[WeatherScreen] empty query, not loading weather');
       setState(() {
-        _loading = false;
+        _weatherLoading = false;
+        _aiLoading = false;
         _error = null;
         _weatherData = null;
         _llmSummary = '';
+        _llmCachedAt = null;
         _llmAdvisories = const [];
         _llmError = null;
       });
       return;
     }
 
+    setState(() {
+      _weatherLoading = true;
+      _error = null;
+      if (_activeQueryLocation != query) {
+        _llmSummary = '';
+        _llmAdvisories = const [];
+        _llmCachedAt = null;
+        _llmError = null;
+      }
+    });
+
     debugPrint('[WeatherScreen] _loadWeather start query="$query"');
     try {
       final weather = await WeatherService.getCurrentWeather(query);
       debugPrint('[WeatherScreen] current weather loaded location="${weather.location}"');
-      WeatherAdvisoryResponse? advisoryResponse;
-      String? llmError;
-      try {
-        advisoryResponse = await WeatherAdvisorService.getAdvisories(
-          location: query,
-          weather: weather,
-        );
-        debugPrint(
-          '[WeatherScreen] LLM advisories loaded count=${advisoryResponse.advisories.length}',
-        );
-      } catch (e) {
-        debugPrint('[WeatherScreen] LLM advisory error: $e');
-        llmError = e.toString().replaceFirst('Exception: ', '');
-      }
       if (!mounted) return;
+
       setState(() {
+        _activeQueryLocation = query;
+        _locationController.text = query;
         _weatherData = weather;
-        _llmSummary = advisoryResponse?.summary ?? '';
-        _llmAdvisories = advisoryResponse?.advisories ?? const [];
-        _llmError = llmError;
-        _loading = false;
+        _weatherLoading = false;
       });
+
+      await _loadAiNotes(query: query, weather: weather);
       debugPrint('[WeatherScreen] _loadWeather completed query="$query"');
     } catch (e) {
       debugPrint('[WeatherScreen] weather pipeline error query="$query": $e');
       if (!mounted) return;
       setState(() {
-        _loading = false;
+        _weatherLoading = false;
         _error = e.toString().replaceFirst('Exception: ', '');
       });
     }
+  }
+
+  Future<void> _loadAiNotes({
+    required String query,
+    required WeatherData weather,
+    bool forceRefresh = false,
+  }) async {
+    setState(() {
+      _aiLoading = true;
+      if (forceRefresh) {
+        _llmError = null;
+      }
+    });
+
+    if (!forceRefresh) {
+      final cached = await WeatherAdvisorCacheService.readValid(location: query);
+      if (cached != null) {
+        if (!mounted) return;
+        setState(() {
+          _llmSummary = cached.summary;
+          _llmAdvisories = cached.advisories;
+          _llmCachedAt = cached.cachedAt;
+          _llmError = null;
+          _aiLoading = false;
+        });
+        return;
+      }
+    }
+
+    try {
+      final advisoryResponse = await WeatherAdvisorService.getAdvisories(
+        location: query,
+        weather: weather,
+      );
+      debugPrint(
+        '[WeatherScreen] LLM advisories loaded count=${advisoryResponse.advisories.length}',
+      );
+      await WeatherAdvisorCacheService.write(
+        location: query,
+        summary: advisoryResponse.summary,
+        advisories: advisoryResponse.advisories,
+      );
+      if (!mounted) return;
+      setState(() {
+        _llmSummary = advisoryResponse.summary;
+        _llmAdvisories = advisoryResponse.advisories;
+        _llmCachedAt = DateTime.now();
+        _llmError = null;
+        _aiLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[WeatherScreen] LLM advisory error: $e');
+      if (!mounted) return;
+      setState(() {
+        _llmError = e.toString().replaceFirst('Exception: ', '');
+        _aiLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshAiNotes() async {
+    final weather = _weatherData;
+    if (weather == null) {
+      await _loadWeather();
+      return;
+    }
+    final query = _activeQueryLocation.isEmpty
+        ? _locationController.text.trim()
+        : _activeQueryLocation;
+    if (query.isEmpty) return;
+    await _loadAiNotes(query: query, weather: weather, forceRefresh: true);
   }
 
   @override
@@ -126,22 +198,25 @@ class _WeatherScreenState extends State<WeatherScreen> {
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: () => _loadWeather(),
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-                    children: [
-                      _buildHeader(),
-                      SizedBox(height: 14.h),
-                      _buildLocationInput(),
-                      SizedBox(height: 16.h),
-                      if (_error != null) _buildErrorCard() else ..._buildWeatherContent(),
-                    ],
-                  ),
-                ),
+          child: RefreshIndicator(
+            onRefresh: () => _loadWeather(),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+              children: [
+                _buildHeader(),
+                SizedBox(height: 14.h),
+                _buildLocationInput(),
+                SizedBox(height: 16.h),
+                if (_error != null)
+                  _buildErrorCard()
+                else if (_weatherLoading && _weatherData == null)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  ..._buildWeatherContent(),
+              ],
+            ),
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -161,7 +236,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           ),
         ),
         IconButton(
-          onPressed: () => _loadWeather(),
+          onPressed: _weatherLoading ? null : () => _loadWeather(),
           icon: const Icon(Icons.refresh_rounded),
           color: AppColors.primaryGreen,
         ),
@@ -202,7 +277,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
         SizedBox(
           height: 46.h,
           child: ElevatedButton(
-            onPressed: () => _loadWeather(),
+            onPressed: _weatherLoading ? null : () => _loadWeather(),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -273,6 +348,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
         title: 'AI Weather Notes',
         summary: _llmSummary,
         advisories: _llmAdvisories,
+        cachedAt: _llmCachedAt,
+        loading: _aiLoading,
         emptyMessage: 'No AI advisories available.',
       ),
     ];
@@ -432,8 +509,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
     required String title,
     required String summary,
     required List<WeatherAdvisory> advisories,
+    required DateTime? cachedAt,
+    required bool loading,
     required String emptyMessage,
   }) {
+    final freshnessText = cachedAt == null
+        ? 'Not generated yet'
+        : 'Last updated ${DateFormat('d MMM, h:mm a').format(cachedAt)}';
+
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: _cardDecoration().copyWith(
@@ -442,12 +525,36 @@ class _WeatherScreenState extends State<WeatherScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreenDark,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Refresh AI notes',
+                onPressed: loading ? null : _refreshAiNotes,
+                icon: loading
+                    ? SizedBox(
+                        height: 18.sp,
+                        width: 18.sp,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync_rounded),
+                color: AppColors.primaryGreen,
+              ),
+            ],
+          ),
           Text(
-            title,
+            freshnessText,
             style: GoogleFonts.poppins(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryGreenDark,
+              fontSize: 11.sp,
+              color: AppColors.textSecondary,
             ),
           ),
           if (summary.isNotEmpty) ...[
@@ -461,7 +568,15 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ),
           ],
           SizedBox(height: 8.h),
-          if (advisories.isEmpty)
+          if (advisories.isEmpty && loading)
+            Text(
+              'Loading AI advisories...',
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                color: AppColors.textSecondary,
+              ),
+            )
+          else if (advisories.isEmpty)
             Text(
               _llmError == null ? emptyMessage : 'AI advisories unavailable: $_llmError',
               style: GoogleFonts.poppins(
