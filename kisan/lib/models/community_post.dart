@@ -2,205 +2,141 @@ class CommunityPost {
   final String id;
   final String farmerId;
   final String farmerName;
-  final String farmerImage;
+  final String? farmerImageUrl;
   final String title;
   final String content;
   final String category;
   final List<String> images;
   final List<String> tags;
-  final int likes;
-  final int comments;
-  final int shares;
+  final int likesCount;
+  final int commentsCount;
   final bool isLiked;
   final DateTime createdAt;
-  final DateTime updatedAt;
-  final List<Comment> commentsList;
   final String location;
-  final bool isVerified;
 
-  CommunityPost({
+  const CommunityPost({
     required this.id,
     required this.farmerId,
     required this.farmerName,
-    required this.farmerImage,
+    required this.farmerImageUrl,
     required this.title,
     required this.content,
     required this.category,
     required this.images,
     required this.tags,
-    required this.likes,
-    required this.comments,
-    required this.shares,
+    required this.likesCount,
+    required this.commentsCount,
     required this.isLiked,
     required this.createdAt,
-    required this.updatedAt,
-    required this.commentsList,
     required this.location,
-    required this.isVerified,
   });
 
-  factory CommunityPost.fromJson(Map<String, dynamic> json) {
+  factory CommunityPost.fromRow(
+    Map<String, dynamic> row, {
+    required Set<String> likedPostIds,
+  }) {
+    final farmer = _asMap(row['farmers']);
+    final village = farmer['village']?.toString().trim() ?? '';
+    final district = farmer['district']?.toString().trim() ?? '';
+    final state = farmer['state']?.toString().trim() ?? '';
+    final location = [village, district, state]
+        .where((v) => v.isNotEmpty)
+        .join(', ');
+
     return CommunityPost(
-      id: json['id'] ?? '',
-      farmerId: json['farmerId'] ?? '',
-      farmerName: json['farmerName'] ?? '',
-      farmerImage: json['farmerImage'] ?? '',
-      title: json['title'] ?? '',
-      content: json['content'] ?? '',
-      category: json['category'] ?? '',
-      images: List<String>.from(json['images'] ?? []),
-      tags: List<String>.from(json['tags'] ?? []),
-      likes: json['likes'] ?? 0,
-      comments: json['comments'] ?? 0,
-      shares: json['shares'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      commentsList: (json['commentsList'] as List?)
-          ?.map((e) => Comment.fromJson(e))
-          .toList() ?? [],
-      location: json['location'] ?? '',
-      isVerified: json['isVerified'] ?? false,
+      id: row['id'].toString(),
+      farmerId: row['farmer_id'].toString(),
+      farmerName: farmer['name']?.toString() ?? 'Farmer',
+      farmerImageUrl:
+          farmer['profile_photo']?.toString() ?? farmer['photo_url']?.toString(),
+      title: row['title']?.toString() ?? '',
+      content: row['content']?.toString() ?? '',
+      category: row['category']?.toString() ?? 'General',
+      images: _asStringList(row['image_urls']),
+      tags: _asStringList(row['tags']),
+      likesCount: _asInt(row['likes_count']),
+      commentsCount: _asInt(row['comments_count']),
+      isLiked: likedPostIds.contains(row['id'].toString()),
+      createdAt: DateTime.tryParse(row['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      location: location.isEmpty ? 'Unknown location' : location,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'farmerId': farmerId,
-      'farmerName': farmerName,
-      'farmerImage': farmerImage,
-      'title': title,
-      'content': content,
-      'category': category,
-      'images': images,
-      'tags': tags,
-      'likes': likes,
-      'comments': comments,
-      'shares': shares,
-      'isLiked': isLiked,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-      'commentsList': commentsList.map((e) => e.toJson()).toList(),
-      'location': location,
-      'isVerified': isVerified,
-    };
-  }
-
-  copyWith({required bool isLiked, required int likes}) {
+  CommunityPost copyWith({
+    int? likesCount,
+    int? commentsCount,
+    bool? isLiked,
+  }) {
     return CommunityPost(
       id: id,
       farmerId: farmerId,
       farmerName: farmerName,
-      farmerImage: farmerImage,
+      farmerImageUrl: farmerImageUrl,
       title: title,
       content: content,
       category: category,
       images: images,
       tags: tags,
-      likes: likes,
-      comments: comments,
-      shares: shares,
-      isLiked: isLiked,
+      likesCount: likesCount ?? this.likesCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      isLiked: isLiked ?? this.isLiked,
       createdAt: createdAt,
-      updatedAt: updatedAt,
-      commentsList: commentsList,
       location: location,
-      isVerified: isVerified,
     );
   }
 }
 
-class Comment {
+class CommunityComment {
   final String id;
   final String postId;
   final String farmerId;
   final String farmerName;
-  final String farmerImage;
+  final String? farmerImageUrl;
   final String content;
   final DateTime createdAt;
-  final int likes;
-  final bool isLiked;
-  final List<Comment> replies;
 
-  Comment({
+  const CommunityComment({
     required this.id,
     required this.postId,
     required this.farmerId,
     required this.farmerName,
-    required this.farmerImage,
+    required this.farmerImageUrl,
     required this.content,
     required this.createdAt,
-    required this.likes,
-    required this.isLiked,
-    required this.replies,
   });
 
-  factory Comment.fromJson(Map<String, dynamic> json) {
-    return Comment(
-      id: json['id'] ?? '',
-      postId: json['postId'] ?? '',
-      farmerId: json['farmerId'] ?? '',
-      farmerName: json['farmerName'] ?? '',
-      farmerImage: json['farmerImage'] ?? '',
-      content: json['content'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      likes: json['likes'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      replies: (json['replies'] as List?)
-          ?.map((e) => Comment.fromJson(e))
-          .toList() ?? [],
+  factory CommunityComment.fromRow(Map<String, dynamic> row) {
+    final farmer = _asMap(row['farmers']);
+    return CommunityComment(
+      id: row['id'].toString(),
+      postId: row['post_id'].toString(),
+      farmerId: row['farmer_id'].toString(),
+      farmerName: farmer['name']?.toString() ?? 'Farmer',
+      farmerImageUrl:
+          farmer['profile_photo']?.toString() ?? farmer['photo_url']?.toString(),
+      content: row['content']?.toString() ?? '',
+      createdAt: DateTime.tryParse(row['created_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'postId': postId,
-      'farmerId': farmerId,
-      'farmerName': farmerName,
-      'farmerImage': farmerImage,
-      'content': content,
-      'createdAt': createdAt.toIso8601String(),
-      'likes': likes,
-      'isLiked': isLiked,
-      'replies': replies.map((e) => e.toJson()).toList(),
-    };
   }
 }
 
-class PostCategory {
-  final String id;
-  final String name;
-  final String icon;
-  final String description;
-  final int postCount;
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return const <String, dynamic>{};
+}
 
-  PostCategory({
-    required this.id,
-    required this.name,
-    required this.icon,
-    required this.description,
-    required this.postCount,
-  });
-
-  factory PostCategory.fromJson(Map<String, dynamic> json) {
-    return PostCategory(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      icon: json['icon'] ?? '',
-      description: json['description'] ?? '',
-      postCount: json['postCount'] ?? 0,
-    );
+List<String> _asStringList(dynamic value) {
+  if (value is List) {
+    return value.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
   }
+  return const <String>[];
+}
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'icon': icon,
-      'description': description,
-      'postCount': postCount,
-    };
-  }
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse('$value') ?? 0;
 }

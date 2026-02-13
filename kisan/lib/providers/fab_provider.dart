@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kisan/constants/app_colors.dart';
-import 'package:kisan/Widgets/Widgets/post_card.dart';
 // To access the addCrop logic
 
 // This class will hold the icon and the action for a FAB
@@ -27,14 +25,7 @@ final fabProvider = Provider<Map<String, FabConfiguration>>((ref) {
     //     print('Add Crop FAB Tapped!');
     //   }, backgroundColor: null, child: null,
     // ),
-    '/community': FabConfiguration(
-      icon: Icons.edit,
-      onPressed: (context) {
-        showCreatePostDialog(context);
-      },
-      backgroundColor: AppColors.primaryGreen,
-      child: Icon(Icons.add, color: AppColors.white),
-    ),
+    // Community screen manages its own FAB to keep UI and backend flow in one place.
     // Screens like '/home' and '/weather' are not in the map, so they won't have a FAB.
   };
 });

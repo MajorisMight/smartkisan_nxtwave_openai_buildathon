@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:go_router/go_router.dart';
-import '../constants/app_colors.dart';
-import '../services/demo_data_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:io';
 
-class CommunityScreen extends StatefulWidget {
+import '../constants/app_colors.dart';
+import '../models/community_post.dart';
+import '../providers/community_provider.dart';
+import '../services/storage_service.dart';
+
+class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
 
   @override
-  _CommunityScreenState createState() => _CommunityScreenState();
+  ConsumerState<CommunityScreen> createState() => _CommunityScreenState();
 }
 
-class _CommunityScreenState extends State<CommunityScreen> {
-  int _selectedIndex = 3;
-  String _selectedCategory = 'All';
+class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   final TextEditingController _searchController = TextEditingController();
-
-  final List<String> _categories = [
+  final StorageService _storageService = StorageService();
+  final List<String> _categories = const <String>[
     'All',
     'Farming Tips',
     'Market Updates',
@@ -35,28 +37,45 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(communityRealtimeProvider);
+    final postsAsync = ref.watch(communityPostsProvider);
+    final filteredPosts = ref.watch(filteredCommunityPostsProvider);
+
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: Column(
             children: [
               _buildHeader(),
-              _buildSearchAndFilter(),
+              _buildSearchBar(),
               _buildCategories(),
-              Expanded(child: _buildPostsList()),
+              Expanded(
+                child: postsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => _errorState('Unable to load posts.\n$e'),
+                  data: (_) {
+                    if (filteredPosts.isEmpty) {
+                      return _emptyState();
+                    }
+                    return ListView.builder(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      itemCount: filteredPosts.length,
+                      itemBuilder: (context, index) =>
+                          _buildPostCard(filteredPosts[index]),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showCreatePostDialog();
-        },
+        onPressed: _showCreatePostDialog,
         backgroundColor: AppColors.primaryGreen,
-        child: Icon(Icons.add, color: AppColors.white),
+        child: const Icon(Icons.add, color: AppColors.white),
       ),
     );
   }
@@ -87,121 +106,89 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ),
             ],
           ),
-          Row(
-            children: [
-              Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.white,
-                  size: 20.sp,
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.people_outline,
-                  color: AppColors.white,
-                  size: 20.sp,
-                ),
-              ),
-            ],
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryGreen,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.people_outline,
+              color: AppColors.white,
+              size: 20.sp,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchAndFilter() {
+  Widget _buildSearchBar() {
+    final query = ref.watch(searchQueryProvider);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.shadowLight,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowLight,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: (value) {
+            ref.read(searchQueryProvider.notifier).state = value;
+          },
+          decoration: InputDecoration(
+            hintText: 'Search posts...',
+            prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+            suffixIcon: query.trim().isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      ref.read(searchQueryProvider.notifier).state = '';
+                    },
                   ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search posts...',
-                  prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                ),
-              ),
-            ),
+            border: InputBorder.none,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
           ),
-          SizedBox(width: 12.w),
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.filter_list,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildCategories() {
-    return Container(
+    final selected = ref.watch(postCategoryProvider);
+    return SizedBox(
       height: 50.h,
-      margin: EdgeInsets.symmetric(vertical: 16.h),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-          
+          final isSelected = selected == category;
           return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedCategory = category;
-              });
-            },
+            onTap: () => ref.read(postCategoryProvider.notifier).state = category,
             child: Container(
               margin: EdgeInsets.only(right: 12.w),
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primaryGreen : AppColors.white,
                 borderRadius: BorderRadius.circular(20.r),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: AppColors.shadowLight,
                     blurRadius: 4,
@@ -215,7 +202,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? AppColors.white : AppColors.textPrimary,
+                    color:
+                        isSelected ? AppColors.white : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -226,29 +214,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _buildPostsList() {
-    final posts = DemoDataService.getFarmerCommunityPosts();
-    final filteredPosts = _selectedCategory == 'All' 
-        ? posts 
-        : posts.where((p) => p.category == _selectedCategory).toList();
-
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      itemCount: filteredPosts.length,
-      itemBuilder: (context, index) {
-        final post = filteredPosts[index];
-        return _buildPostCard(post);
-      },
-    );
-  }
-
-  Widget _buildPostCard(post) {
+  Widget _buildPostCard(CommunityPost post) {
+    final avatar = post.farmerImageUrl;
+    final hasAvatar = avatar != null && avatar.trim().isNotEmpty;
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.shadowLight,
             blurRadius: 10,
@@ -259,40 +233,29 @@ class _CommunityScreenState extends State<CommunityScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Post Header
           Padding(
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 20.r,
-                  backgroundImage: AssetImage('assets/images/farmer.jpg'),
+                  backgroundImage:
+                      hasAvatar ? NetworkImage(avatar) : null,
+                  child:
+                      hasAvatar ? null : const Icon(Icons.person_outline),
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            post.farmerName,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          if (post.isVerified)
-                            Container(
-                              margin: EdgeInsets.only(left: 4.w),
-                              child: Icon(
-                                Icons.verified,
-                                color: AppColors.primaryGreen,
-                                size: 16.sp,
-                              ),
-                            ),
-                        ],
+                      Text(
+                        post.farmerName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       Text(
                         post.location,
@@ -314,8 +277,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ],
             ),
           ),
-          
-          // Post Content
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Column(
@@ -324,7 +285,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: Text(
@@ -358,119 +319,72 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 4.h,
-                    children: post.tags.map<Widget>((tag) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.greyLight,
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        '#$tag',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    )).toList(),
+                    children: post.tags
+                        .map(
+                          (tag) => Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 4.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.greyLight,
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Text(
+                              '#$tag',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12.sp,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                if (post.images.isNotEmpty) ...[
+                  SizedBox(height: 12.h),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Image.network(
+                      post.images.first,
+                      height: 180.h,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) {
+                        return Container(
+                          height: 180.h,
+                          color: AppColors.greyLight,
+                          alignment: Alignment.center,
+                          child: const Text('Image unavailable'),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ],
             ),
           ),
-          
-          // Post Images
-          if (post.images.isNotEmpty)
-            Container(
-              height: 200.h,
-              margin: EdgeInsets.all(16.w),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: post.images.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    width: 200.w,
-                    margin: EdgeInsets.only(right: 8.w),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Image.asset(
-                        'assets/images/farmer.jpg',
-                        fit: BoxFit.cover,
-                      ),
-                      // The following code is commented out because local assets are used instead of network images:
-                      /*
-                      child: CachedNetworkImage(
-                        imageUrl: post.images[index],
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: AppColors.greyLight,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primaryGreen,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: AppColors.greyLight,
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: AppColors.grey,
-                            size: 40.sp,
-                          ),
-                        ),
-                      ),
-                      */
-                    ),
-                  );
-                },
-              ),
-            ),
-          
-          // Post Actions
           Padding(
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                _buildActionButton(
-                  post.isLiked ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                  '${post.likes}',
+                _actionButton(
+                  post.isLiked
+                      ? FontAwesomeIcons.solidHeart
+                      : FontAwesomeIcons.heart,
+                  '${post.likesCount}',
                   post.isLiked ? AppColors.error : AppColors.textSecondary,
-                  () {
-                    setState(() {
-                      post.isLiked = !post.isLiked;
-                      post.likes += post.isLiked ? 1 : -1;
-                    });
-                  },
+                  () => ref
+                      .read(communityActionsProvider.notifier)
+                      .toggleLike(post),
                 ),
                 SizedBox(width: 24.w),
-                _buildActionButton(
+                _actionButton(
                   FontAwesomeIcons.comment,
-                  '${post.comments}',
+                  '${post.commentsCount}',
                   AppColors.textSecondary,
-                  () {
-                    _showCommentsDialog(post);
-                  },
-                ),
-                SizedBox(width: 24.w),
-                _buildActionButton(
-                  FontAwesomeIcons.share,
-                  '${post.shares}',
-                  AppColors.textSecondary,
-                  () {
-                    // Share functionality
-                  },
-                ),
-                Spacer(),
-                IconButton(
-                  onPressed: () {
-                    _showMoreOptions(post);
-                  },
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: AppColors.textSecondary,
-                  ),
+                  () => _showCommentsDialog(post),
                 ),
               ],
             ),
@@ -480,7 +394,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _buildActionButton(IconData icon, String count, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+    IconData icon,
+    String count,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -500,141 +419,288 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: Offset(0, -5),
+  Future<void> _showCreatePostDialog() async {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    final tagsController = TextEditingController();
+    String selectedCategory = _categories[1];
+    bool isSubmitting = false;
+    File? selectedImageFile;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Create New Post'),
+              content: SizedBox(
+                width: 320,
+                child: SingleChildScrollView(
+                  child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCategory,
+                      items: _categories
+                          .where((e) => e != 'All')
+                          .map(
+                            (c) => DropdownMenuItem<String>(
+                              value: c,
+                              child: Text(c),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() => selectedCategory = value);
+                      },
+                      decoration: const InputDecoration(labelText: 'Category'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: contentController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(labelText: 'Content'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: tagsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tags (comma separated)',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final file =
+                                  await _storageService.pickAndCompressImage();
+                              if (file == null) return;
+                              setDialogState(() => selectedImageFile = file);
+                            },
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: Text(
+                        selectedImageFile == null
+                            ? 'Add Post Photo'
+                            : 'Change Post Photo',
+                      ),
+                    ),
+                    if (selectedImageFile != null) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 120,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            selectedImageFile!,
+                            fit: BoxFit.cover,
+                            cacheWidth: 720,
+                            filterQuality: FilterQuality.low,
+                            errorBuilder: (_, __, ___) {
+                              return Container(
+                                height: 120,
+                                color: AppColors.greyLight,
+                                alignment: Alignment.center,
+                                child: const Text('Preview unavailable'),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                    final title = titleController.text.trim();
+                    final content = contentController.text.trim();
+                    if (title.isEmpty || content.isEmpty) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text('Title and content are required.'),
+                        ),
+                      );
+                      return;
+                    }
+                    final tags = tagsController.text
+                        .split(',')
+                        .map((t) => t.trim())
+                        .where((t) => t.isNotEmpty)
+                        .toList();
+
+                    setDialogState(() => isSubmitting = true);
+                    try {
+                      await ref
+                          .read(communityActionsProvider.notifier)
+                          .createPost(
+                            category: selectedCategory,
+                            title: title,
+                            content: content,
+                            tags: tags,
+                            imageFile: selectedImageFile,
+                          );
+                      if (!dialogContext.mounted) return;
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Post created successfully.')),
+                      );
+                    } catch (e) {
+                      if (!dialogContext.mounted) return;
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        SnackBar(content: Text('Unable to create post: $e')),
+                      );
+                    } finally {
+                      if (dialogContext.mounted) {
+                        setDialogState(() => isSubmitting = false);
+                      }
+                    }
+                  },
+                  child: Text(isSubmitting ? 'Posting...' : 'Post'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showCommentsDialog(CommunityPost post) async {
+    final inputController = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
           ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          switch (index) {
-            case 0:
-              context.go('/home');
-              break;
-            case 1:
-              context.go('/marketplace');
-              break;
-            case 2:
-              context.go('/weather');
-              break;
-            case 3:
-              context.go('/community');
-              break;
-            case 4:
-              context.go('/profile');
-              break;
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.primaryGreen,
-        unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: GoogleFonts.poppins(fontSize: 12.sp),
-        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12.sp),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+          child: SizedBox(
+            height: MediaQuery.of(sheetContext).size.height * 0.7,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Comments',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final commentsAsync =
+                          ref.watch(commentsByPostProvider(post.id));
+                      return commentsAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => _errorState('Unable to load comments.\n$e'),
+                        data: (comments) {
+                          if (comments.isEmpty) {
+                            return _emptyState(label: 'No comments yet');
+                          }
+                          return ListView.builder(
+                            itemCount: comments.length,
+                            itemBuilder: (context, index) {
+                              final c = comments[index];
+                              final hasAvatar = c.farmerImageUrl != null &&
+                                  c.farmerImageUrl!.trim().isNotEmpty;
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundImage: hasAvatar
+                                      ? NetworkImage(c.farmerImageUrl!)
+                                      : null,
+                                  child: hasAvatar
+                                      ? null
+                                      : const Icon(Icons.person_outline),
+                                ),
+                                title: Text(c.farmerName),
+                                subtitle: Text(c.content),
+                                trailing: Text(
+                                  _getTimeAgo(c.createdAt),
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: inputController,
+                          decoration: const InputDecoration(
+                            hintText: 'Write a comment...',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: () async {
+                          final text = inputController.text.trim();
+                          if (text.isEmpty) return;
+                          await ref
+                              .read(communityActionsProvider.notifier)
+                              .addComment(postId: post.id, content: text);
+                          inputController.clear();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store_outlined),
-            activeIcon: Icon(Icons.store),
-            label: 'Marketplace',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wb_sunny_outlined),
-            activeIcon: Icon(Icons.wb_sunny),
-            label: 'Weather',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            activeIcon: Icon(Icons.people),
-            label: 'Community',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _emptyState({String label = 'No posts found'}) {
+    return Center(
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          color: AppColors.textSecondary,
+          fontSize: 14.sp,
+        ),
       ),
     );
   }
 
-  void _showCreatePostDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Create New Post'),
-        content: Text('This feature will allow you to create new community posts.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCommentsDialog(post) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Comments'),
-        content: Text('Comments feature will be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMoreOptions(post) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.bookmark_outline),
-              title: Text('Save Post'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.report_outlined),
-              title: Text('Report Post'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.block_outlined),
-              title: Text('Block User'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
+  Widget _errorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(color: AppColors.textSecondary),
         ),
       ),
     );
@@ -643,15 +709,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
   String _getTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
-    if (difference.inMinutes < 1) {
-      return 'just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${difference.inDays}d ago';
-    }
+    if (difference.inMinutes < 1) return 'just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    return '${difference.inDays}d ago';
   }
 }

@@ -1,13 +1,11 @@
-
-import '../models/weather.dart';
 import '../models/community_post.dart';
 import '../models/product.dart';
+import '../models/weather.dart';
 
 class ConsistentDataService {
-    // Consistent weather data
-  static WeatherData getWeatherData() {
+  static WeatherData getWeatherData({String location = 'Ludhiana, Punjab'}) {
     return WeatherData(
-      location: 'Ludhiana, Punjab',
+      location: location,
       temperature: 18.5,
       humidity: 72.0,
       windSpeed: 8.0,
@@ -15,12 +13,13 @@ class ConsistentDataService {
       pressure: 1015.2,
       visibility: 12.0,
       condition: 'Partly Cloudy',
-      description: 'Cool morning with light winds, good for farming activities',
+      description:
+          'Cool morning with light winds, good for farming activities',
       icon: 'partly-cloudy',
       timestamp: DateTime.now(),
       forecast: [
         WeatherForecast(
-          date: DateTime.now().add(Duration(days: 1)),
+          date: DateTime.now().add(const Duration(days: 1)),
           maxTemp: 22.0,
           minTemp: 12.0,
           condition: 'Sunny',
@@ -31,7 +30,7 @@ class ConsistentDataService {
           windSpeed: 6.0,
         ),
         WeatherForecast(
-          date: DateTime.now().add(Duration(days: 2)),
+          date: DateTime.now().add(const Duration(days: 2)),
           maxTemp: 20.0,
           minTemp: 10.0,
           condition: 'Foggy',
@@ -42,7 +41,7 @@ class ConsistentDataService {
           windSpeed: 3.0,
         ),
         WeatherForecast(
-          date: DateTime.now().add(Duration(days: 3)),
+          date: DateTime.now().add(const Duration(days: 3)),
           maxTemp: 25.0,
           minTemp: 15.0,
           condition: 'Partly Cloudy',
@@ -55,7 +54,10 @@ class ConsistentDataService {
       ],
       alerts: WeatherAlerts(
         warnings: ['Fog alert for tomorrow morning'],
-        advisories: ['Good time for fertilizer application', 'Irrigation recommended in next 2 days'],
+        advisories: [
+          'Good time for fertilizer application',
+          'Irrigation recommended in next 2 days',
+        ],
         riskLevel: 'Low',
       ),
       soilConditions: SoilConditions(
@@ -66,153 +68,53 @@ class ConsistentDataService {
       ),
       cropRecommendations: CropRecommendations(
         suitableCrops: ['Wheat', 'Mustard', 'Potato'],
-        plantingTips: ['Plant wheat in rows for better yield', 'Apply organic manure before sowing'],
+        plantingTips: [
+          'Plant wheat in rows for better yield',
+          'Apply organic manure before sowing',
+        ],
         irrigationAdvice: 'Water wheat fields every 10-12 days',
         pestControl: 'Monitor for aphids in wheat, use neem oil if needed',
       ),
     );
   }
 
-  // Consistent community posts
   static List<CommunityPost> getCommunityPosts() {
     return [
       CommunityPost(
         id: 'post_001',
         farmerId: 'farmer_001',
         farmerName: 'Rajesh Kumar Singh',
-        farmerImage: 'assets/images/farmer.jpg',
+        farmerImageUrl: null,
         title: 'Wheat Harvest Tips for Punjab Farmers',
-        content: 'Sharing my experience with wheat cultivation this season. The HD-2967 variety has given excellent results. Key tips: 1) Apply urea in split doses 2) Monitor for aphids regularly 3) Harvest at 14% moisture content. Anyone else growing wheat this season?',
+        content:
+            'Sharing my experience with wheat cultivation this season. The HD-2967 variety has given excellent results.',
         category: 'Farming Tips',
-        images: ['assets/images/wheat.jpg'],
-        tags: ['wheat', 'harvest', 'punjab', 'tips'],
-        likes: 67,
-        comments: 23,
-        shares: 12,
+        images: const ['assets/images/wheat.jpg'],
+        tags: const ['wheat', 'harvest', 'punjab', 'tips'],
+        likesCount: 67,
+        commentsCount: 23,
         isLiked: true,
-        createdAt: DateTime.now().subtract(Duration(hours: 3)),
-        updatedAt: DateTime.now().subtract(Duration(hours: 3)),
-        commentsList: [
-          Comment(
-            id: 'comment_001',
-            postId: 'post_001',
-            farmerId: 'farmer_002',
-            farmerName: 'Amit Singh',
-            farmerImage: 'assets/images/farmer.jpg',
-            content: 'Great tips Rajesh! I also used HD-2967 this year. Yield was 45 quintals per acre.',
-            createdAt: DateTime.now().subtract(Duration(hours: 2)),
-            likes: 8,
-            isLiked: false,
-            replies: [],
-          ),
-        ],
+        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
         location: 'Ludhiana, Punjab',
-        isVerified: true,
       ),
       CommunityPost(
         id: 'post_002',
         farmerId: 'farmer_001',
         farmerName: 'Rajesh Kumar Singh',
-        farmerImage: 'assets/images/farmer.jpg',
+        farmerImageUrl: null,
         title: 'Cotton Selling Price Update',
-        content: 'Sold my cotton today at ₹6,500 per quintal. Market is stable. Good time to sell if you have stock. Contact me if you need buyer details.',
+        content:
+            'Sold my cotton today at Rs 6,500 per quintal. Market is stable.',
         category: 'Market Updates',
-        images: ['assets/images/cotton.jpg'],
-        tags: ['cotton', 'price', 'market', 'selling'],
-        likes: 34,
-        comments: 8,
-        shares: 15,
+        images: const ['assets/images/cotton.jpg'],
+        tags: const ['cotton', 'price', 'market', 'selling'],
+        likesCount: 34,
+        commentsCount: 8,
         isLiked: false,
-        createdAt: DateTime.now().subtract(Duration(hours: 8)),
-        updatedAt: DateTime.now().subtract(Duration(hours: 8)),
-        commentsList: [],
+        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
         location: 'Ludhiana, Punjab',
-        isVerified: true,
       ),
     ];
   }
 
-  // Consistent marketplace products
-  static List<Product> getMarketplaceProducts() {
-    return [
-      Product(
-        id: 'prod_001',
-        name: 'Urea Fertilizer - Premium Grade',
-        description: 'High-quality urea fertilizer suitable for wheat and rice crops. Increases yield by 20-25%.',
-        category: 'Fertilizers',
-        subCategory: 'Nitrogen',
-        price: 30.0,
-        unit: 'kg',
-        imageUrl: 'assets/images/fertilizer.jpg',
-        farmerId: 'supplier_001',
-        farmerName: 'Agro Supply Co.',
-        farmerLocation: 'Ludhiana, Punjab',
-        isOrganic: false,
-        isAvailable: true,
-        stockQuantity: 500,
-        rating: 4.7,
-        reviewCount: 156,
-        harvestDate: DateTime.now().subtract(Duration(days: 5)),
-        expiryDate: DateTime.now().add(Duration(days: 365)),
-        images: ['assets/images/fertilizer.jpg'],
-        specifications: {'grade': 'Premium', 'nitrogen_content': '46%', 'moisture': '<1%'},
-        origin: 'Punjab',
-        isVerified: true,
-        createdAt: DateTime.now().subtract(Duration(days: 5)),
-        updatedAt: DateTime.now(),
-      ),
-      Product(
-        id: 'prod_002',
-        name: 'Neem Oil - Organic Pest Control',
-        description: 'Pure neem oil for organic pest control. Safe for wheat, rice, and cotton crops.',
-        category: 'Pesticides',
-        subCategory: 'Organic',
-        price: 450.0,
-        unit: 'litre',
-        imageUrl: 'assets/images/fertilizer.jpg',
-        farmerId: 'supplier_002',
-        farmerName: 'Organic Solutions',
-        farmerLocation: 'Amritsar, Punjab',
-        isOrganic: true,
-        isAvailable: true,
-        stockQuantity: 100,
-        rating: 4.8,
-        reviewCount: 89,
-        harvestDate: DateTime.now().subtract(Duration(days: 10)),
-        expiryDate: DateTime.now().add(Duration(days: 730)),
-        images: ['assets/images/fertilizer.jpg'],
-        specifications: {'purity': '100%', 'azadirachtin': '3000 ppm', 'organic_certified': 'Yes'},
-        origin: 'Punjab',
-        isVerified: true,
-        createdAt: DateTime.now().subtract(Duration(days: 10)),
-        updatedAt: DateTime.now(),
-      ),
-      Product(
-        id: 'prod_003',
-        name: 'Wheat Seeds - HD 2967 Variety',
-        description: 'High-yielding wheat seeds, disease-resistant variety. Perfect for Punjab climate.',
-        category: 'Seeds',
-        subCategory: 'Wheat',
-        price: 45.0,
-        unit: 'kg',
-        imageUrl: 'assets/images/wheat.jpg',
-        farmerId: 'supplier_003',
-        farmerName: 'Seed Corporation',
-        farmerLocation: 'Chandigarh, Punjab',
-        isOrganic: false,
-        isAvailable: true,
-        stockQuantity: 200,
-        rating: 4.9,
-        reviewCount: 234,
-        harvestDate: DateTime.now().subtract(Duration(days: 15)),
-        expiryDate: DateTime.now().add(Duration(days: 180)),
-        images: ['assets/images/wheat.jpg'],
-        specifications: {'variety': 'HD 2967', 'germination': '95%', 'purity': '99%'},
-        origin: 'Punjab',
-        isVerified: true,
-        createdAt: DateTime.now().subtract(Duration(days: 15)),
-        updatedAt: DateTime.now(),
-      ),
-    ];
-  }
 }

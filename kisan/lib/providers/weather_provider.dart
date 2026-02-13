@@ -15,5 +15,5 @@ final weatherProvider = FutureProvider<WeatherData>((ref) async {
 
   // For now, we use the demo service and simulate a network delay.
   await Future.delayed(const Duration(seconds: 1));
-  return ConsistentDataService.getWeatherData();
+  return ConsistentDataService.getWeatherData(location: location.toString());
 });

@@ -55,15 +55,6 @@ class PostCard extends ConsumerWidget {
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          if (post.isVerified)
-                            Container(
-                              margin: EdgeInsets.only(left: 4.w),
-                              child: Icon(
-                                Icons.verified,
-                                color: AppColors.primaryGreen,
-                                size: 16.sp,
-                              ),
-                            ),
                         ],
                       ),
                       Text(
@@ -96,7 +87,7 @@ class PostCard extends ConsumerWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withOpacity(0.1),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: Text(
@@ -207,27 +198,18 @@ class PostCard extends ConsumerWidget {
               children: [
                 buildActionButton(
                   post.isLiked ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                  '${post.likes}',
+                  '${post.likesCount}',
                   post.isLiked ? AppColors.error : AppColors.textSecondary,
                   () {
-                    // Call the method on the notifier
-                    ref.read(communityPostsProvider.notifier).likePost(post.id);
+                    ref.read(communityActionsProvider.notifier).toggleLike(post);
                   },
                 ),
                 SizedBox(width: 24.w),
                 buildActionButton(
                   FontAwesomeIcons.comment,
-                  '${post.comments}',
+                  '${post.commentsCount}',
                   AppColors.textSecondary,
                   () => showCommentsDialog(post, context),
-                ),
-                buildActionButton(
-                  FontAwesomeIcons.share,
-                  '${post.shares}',
-                  AppColors.textSecondary,
-                  () {
-                    //TODO: Share functionality
-                  },
                 ),
                 const Spacer(),
                 IconButton(
