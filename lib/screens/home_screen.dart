@@ -9,6 +9,7 @@ import '../utils/dummy_data.dart';
 import 'package:provider/provider.dart';
 import '../models/profile.dart' as db_profile;
 import '../providers/profile_provider.dart';
+import 'crop_suggestion_screen.dart';
 import 'fertilizer_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -27,9 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Column(
@@ -69,9 +68,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (profile.farms.isNotEmpty) {
         final farm = profile.farms.first;
         final parts =
-            [farm.village, farm.district, farm.state]
-                .where((e) => e.trim().isNotEmpty && e != 'N/A')
-                .toList();
+            [
+              farm.village,
+              farm.district,
+              farm.state,
+            ].where((e) => e.trim().isNotEmpty && e != 'N/A').toList();
         if (parts.isNotEmpty) {
           farmLine = parts.join(', ');
         }
@@ -82,7 +83,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded( // Wrap this Column with Expanded
+          Expanded(
+            // Wrap this Column with Expanded
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -164,11 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               AppColors.success,
             ),
           ),
-          Container(
-            width: 1,
-            height: 40.h,
-            color: AppColors.borderLight,
-          ),
+          Container(width: 1, height: 40.h, color: AppColors.borderLight),
           Expanded(
             child: _buildStatItem(
               'Active Orders',
@@ -177,11 +175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               AppColors.info,
             ),
           ),
-          Container(
-            width: 1,
-            height: 40.h,
-            color: AppColors.borderLight,
-          ),
+          Container(width: 1, height: 40.h, color: AppColors.borderLight),
           Expanded(
             child: _buildStatItem(
               'Products',
@@ -195,7 +189,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildStatItem(String title, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, color: color, size: 20.sp),
@@ -252,6 +251,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const FertilizerScreen.baseline(),
+                  ),
+                ),
+          ),
+          SizedBox(height: 12.h),
+          _buildPrimaryActionCard(
+            title: 'Crop Suggestions',
+            subtitle: 'AI crop plan using backend farm data',
+            icon: FontAwesomeIcons.wandMagicSparkles,
+            color: AppColors.info,
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CropSuggestionScreen(),
                   ),
                 ),
           ),
@@ -329,9 +342,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
                   color:
-                      enabled
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                      enabled ? AppColors.textPrimary : AppColors.textSecondary,
                 ),
               ),
               if (!enabled) ...[
@@ -410,10 +421,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -439,11 +447,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: AppColors.warning.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(
-              Icons.wb_sunny,
-              color: AppColors.warning,
-              size: 18.sp,
-            ),
+            child: Icon(Icons.wb_sunny, color: AppColors.warning, size: 18.sp),
           ),
           SizedBox(width: 12.w),
           Expanded(

@@ -106,6 +106,22 @@ class GeminiService {
     return _safeJson(text);
   }
 
+  static Future<Map<String, dynamic>> weatherAdvisories({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    if (_modelText == null) throw Exception('Gemini not initialized');
+    final resp = await _modelText!.generateContent(
+      [Content.text(_buildWeatherAdvisoryPrompt(contextData))],
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      ),
+    );
+    final text = resp.text ?? '{}';
+    return _safeJson(text);
+  }
+  
   static Future<List<Map<String, dynamic>>> applicableSchemes({
     required Map<String, dynamic> profile,
   }) async {

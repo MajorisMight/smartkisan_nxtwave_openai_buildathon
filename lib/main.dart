@@ -11,6 +11,7 @@ import 'package:kisan/providers/profile_provider.dart';
 // import 'package:kisan/screens/ai_insights_screen.dart';
 import 'package:kisan/screens/confirm_email_screen.dart';
 import 'package:kisan/screens/crop_list_screen.dart';
+import 'package:kisan/screens/crop_suggestion_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
@@ -205,6 +206,10 @@ class _FarmerEcosystemAppState extends ConsumerState<FarmerEcosystemApp> {
           builder: (context, state) => const ConfirmEmailScreen(),
         ),
         GoRoute(path: '/crops', builder: (context, state) => CropListScreen()),
+        GoRoute(
+          path: '/crop-suggestions',
+          builder: (context, state) => const CropSuggestionScreen(),
+        ),
         GoRoute(
           path: '/disease-detect',
           builder: (context, state) => const DiseaseDetectScreen(),

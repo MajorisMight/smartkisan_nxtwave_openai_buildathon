@@ -11,7 +11,7 @@ import '../models/onboarding_profile.dart';
 import '../models/weather.dart';
 import '../providers/profile_provider.dart';
 import '../services/weather_advisor_cache_service.dart';
-import '../services/weather_advisor_service.dart';
+import '../services/weather_advisor_service .dart';
 import '../services/weather_service.dart';
 
 class WeatherScreen extends StatefulWidget {
@@ -219,7 +219,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      // bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -659,35 +659,35 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', 0),
-              _buildNavItem(Icons.store, 'Market', 1),
-              _buildNavItem(Icons.wb_sunny, 'Weather', 2),
-              _buildNavItem(Icons.people, 'Community', 3),
-              _buildNavItem(Icons.person, 'Profile', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildBottomNavigationBar() {
+  //   return Container(
+  //     decoration: const BoxDecoration(
+  //       color: AppColors.white,
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: AppColors.shadowLight,
+  //           blurRadius: 10,
+  //           offset: Offset(0, -5),
+  //         ),
+  //       ],
+  //     ),
+  //     child: SafeArea(
+  //       child: Padding(
+  //         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+  //         child: Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //           children: [
+  //             _buildNavItem(Icons.home, 'Home', 0),
+  //             _buildNavItem(Icons.store, 'Market', 1),
+  //             _buildNavItem(Icons.wb_sunny, 'Weather', 2),
+  //             _buildNavItem(Icons.people, 'Community', 3),
+  //             _buildNavItem(Icons.person, 'Profile', 4),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
