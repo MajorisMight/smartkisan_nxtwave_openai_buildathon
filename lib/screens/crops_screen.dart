@@ -9,6 +9,8 @@ import '../constants/app_colors.dart';
 import '../models/crop.dart';
 import '../models/crop_action.dart';
 import '../providers/profile_provider.dart';
+import '../services/action_trigger_service.dart';
+import '../services/gpt_service.dart';
 import 'fertilizer_screen.dart';
 
 class CropsScreen extends StatefulWidget {
@@ -27,6 +29,11 @@ class _TaskItem {
   final String title;
   final String subtitle;
   final bool isIrrigation;
+  final bool isHighPriority;
+  final bool requiresInput;
+  final String? inputLabel;
+  final String? inputHint;
+  final String? inputUnit;
   bool isDone;
 
   _TaskItem({
@@ -34,6 +41,11 @@ class _TaskItem {
     required this.title,
     required this.subtitle,
     this.isIrrigation = false,
+    this.isHighPriority = false,
+    this.requiresInput = false,
+    this.inputLabel,
+    this.inputHint,
+    this.inputUnit,
   }) : isDone = false;
 }
 
@@ -86,6 +98,10 @@ class _CropsScreenState extends State<CropsScreen> {
   late List<_TaskItem> tasks;
   _CropSection selectedSection = _CropSection.actionCenter;
   _CropProfile? _profile;
+  bool _isLoadingTasks = true;
+  bool _localThresholdReached = false;
+  int _triggerScore = 0;
+  bool _isLoadingLlmTasks = false;
 
   @override
   void initState() {
@@ -93,25 +109,9 @@ class _CropsScreenState extends State<CropsScreen> {
     cropLogs = List<CropAction>.from(widget.crop.actionsHistory)
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    tasks = [
-      _TaskItem(
-        id: 'irrigation-weekly',
-        title: 'Irrigation suggested this week',
-        subtitle: 'Tap to mark complete and add an irrigation log entry.',
-        isIrrigation: true,
-      ),
-      _TaskItem(
-        id: 'pest-check',
-        title: 'Scout border rows for pest signs',
-        subtitle: 'Pest risk is currently medium this week.',
-      ),
-      _TaskItem(
-        id: 'soil-check',
-        title: 'Check soil moisture in 2 sample spots',
-        subtitle: 'Record values before the next irrigation cycle.',
-      ),
-    ];
+    tasks = [];
     _loadCropProfile();
+    _loadLocalActionTriggers();
   }
 
   @override
@@ -215,10 +215,7 @@ class _CropsScreenState extends State<CropsScreen> {
                 : 'Not set',
           ),
           _buildOverviewRow('Planting date', _formatDate(widget.crop.sowDate)),
-          _buildOverviewRow(
-            'Expected harvest window',
-            harvestWindow,
-          ),
+          _buildOverviewRow('Expected harvest window', harvestWindow),
           const SizedBox(height: 14),
           const Text(
             'Growth timeline',
@@ -420,10 +417,121 @@ class _CropsScreenState extends State<CropsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_localThresholdReached) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5E8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFD7A8)),
+            ),
+            child: Text(
+              'High-signal context detected (score $_triggerScore). Strategic task generation is enabled.',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
         _buildPestRiskCard(),
         const SizedBox(height: 12),
-        ...tasks.map(_buildTaskTile),
+        if (_isLoadingLlmTasks) _buildLlmLoadingCard(),
+        if (_isLoadingTasks)
+          _buildLoadingTasksCard()
+        else if (tasks.isEmpty)
+          _buildNoTasksCard()
+        else
+          ...tasks.map(_buildTaskTile),
       ],
+    );
+  }
+
+  Widget _buildLoadingTasksCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Scanning local signals for actionable triggers...',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoTasksCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: const Text(
+        'No urgent action triggers right now. Continue regular monitoring.',
+        style: TextStyle(
+          fontSize: 13,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLlmLoadingCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Prioritizing tasks with AI based on current triggers...',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -443,7 +551,9 @@ class _CropsScreenState extends State<CropsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            activeRisk == null ? 'Pest risk' : 'Pest risk (${activeRisk.pestName})',
+            activeRisk == null
+                ? 'Pest risk'
+                : 'Pest risk (${activeRisk.pestName})',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -499,12 +609,15 @@ class _CropsScreenState extends State<CropsScreen> {
             task.title,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color:
+                  task.isHighPriority ? AppColors.error : AppColors.textPrimary,
               decoration: task.isDone ? TextDecoration.lineThrough : null,
             ),
           ),
           subtitle: Text(
-            task.subtitle,
+            task.requiresInput
+                ? '${task.subtitle} • Input required'
+                : task.subtitle,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
@@ -519,28 +632,243 @@ class _CropsScreenState extends State<CropsScreen> {
     );
   }
 
-  void _onTaskTap(_TaskItem task) {
+  Future<void> _loadLocalActionTriggers() async {
     setState(() {
-      task.isDone = !task.isDone;
+      _isLoadingTasks = true;
     });
 
-    if (task.isIrrigation && task.isDone) {
-      final now = DateTime.now();
-      cropLogs.insert(
-        0,
-        CropAction(
-          id: now.millisecondsSinceEpoch,
-          farmCropId: int.tryParse(widget.crop.id) ?? 0,
-          date: now,
-          action: 'Irrigated',
-          notes: 'Marked complete from Action Center',
-        ),
+    try {
+      final result = await ActionTriggerService.generateLocalTriggers(
+        crop: widget.crop,
       );
+      if (!mounted) return;
 
+      setState(() {
+        tasks =
+            result.tasks
+                .map(
+                  (task) => _TaskItem(
+                    id: task.id,
+                    title: task.title,
+                    subtitle: task.subtitle,
+                    isIrrigation: task.isIrrigation,
+                    isHighPriority: task.isHighPriority,
+                    requiresInput: task.requiresInput,
+                    inputLabel: task.inputLabel,
+                    inputHint: task.inputHint,
+                    inputUnit: task.inputUnit,
+                  ),
+                )
+                .toList();
+        _localThresholdReached = result.shouldQueryLlm;
+        _triggerScore = result.triggerScore;
+        _isLoadingTasks = false;
+      });
+
+      if (result.shouldQueryLlm && result.signals.isNotEmpty) {
+        final recentLogs =
+            cropLogs
+                .take(10)
+                .map(
+                  (log) => <String, dynamic>{
+                    'date': log.date.toIso8601String(),
+                    'action': log.action,
+                    'notes': log.notes,
+                  },
+                )
+                .toList();
+        await _loadLlmActionSuggestions({
+          ...result.llmPayload,
+          'recent_action_logs': recentLogs,
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTasks = false;
+      });
+    }
+  }
+
+  Future<void> _loadLlmActionSuggestions(
+    Map<String, dynamic> llmPayload,
+  ) async {
+    setState(() {
+      _isLoadingLlmTasks = true;
+    });
+
+    try {
+      final response = await GptService.actionCenterSuggestions(
+        contextData: llmPayload,
+      );
+      if (!mounted) return;
+
+      final rawTasks = response['tasks'];
+      if (rawTasks is List && rawTasks.isNotEmpty) {
+        final mapped =
+            rawTasks
+                .whereType<Map>()
+                .map((task) => Map<String, dynamic>.from(task))
+                .toList();
+        final parsed =
+            mapped.asMap().entries.map((entry) {
+              final index = entry.key;
+              final task = entry.value;
+              final completionType =
+                  (task['completion_type'] ?? '')
+                      .toString()
+                      .toLowerCase()
+                      .trim();
+              final requiresInput = completionType == 'with_input';
+              final inputConfig = task['input_config'];
+              final inputMap =
+                  inputConfig is Map
+                      ? Map<String, dynamic>.from(inputConfig)
+                      : const <String, dynamic>{};
+
+              return _TaskItem(
+                id:
+                    (task['id'] ?? '').toString().trim().isNotEmpty
+                        ? task['id'].toString().trim()
+                        : 'llm-${DateTime.now().microsecondsSinceEpoch}-$index',
+                title:
+                    (task['title'] ?? '').toString().trim().isNotEmpty
+                        ? task['title'].toString().trim()
+                        : 'Field monitoring task',
+                subtitle:
+                    (task['subtitle'] ?? '').toString().trim().isNotEmpty
+                        ? task['subtitle'].toString().trim()
+                        : 'Review current field condition and take required action.',
+                isIrrigation: task['is_irrigation'] == true,
+                isHighPriority:
+                    (task['priority'] ?? '').toString().toLowerCase() == 'high',
+                requiresInput: requiresInput,
+                inputLabel: _nullableText(inputMap['label']),
+                inputHint: _nullableText(inputMap['placeholder']),
+                inputUnit: _nullableText(inputMap['unit']),
+              );
+            }).toList();
+
+        if (parsed.isNotEmpty) {
+          setState(() {
+            tasks = parsed.take(6).toList();
+          });
+        }
+      }
+    } catch (_) {
+      // Fallback to deterministic tasks if LLM fails.
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLlmTasks = false;
+        });
+      }
+    }
+  }
+
+  void _onTaskTap(_TaskItem task) {
+    if (task.isDone) {
+      setState(() {
+        task.isDone = false;
+      });
+      return;
+    }
+
+    _completeTask(task);
+  }
+
+  Future<void> _completeTask(_TaskItem task) async {
+    String? capturedInput;
+    if (task.requiresInput) {
+      capturedInput = await _showTaskInputDialog(task);
+      if (!mounted || capturedInput == null) return;
+    }
+
+    setState(() {
+      task.isDone = true;
+    });
+
+    _appendTaskToActionLog(task, capturedInput: capturedInput);
+
+    if (task.isIrrigation) {
+      final now = DateTime.now();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Irrigation logged on ${_formatDate(now)}')),
       );
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Task marked complete and logged')),
+    );
+  }
+
+  Future<String?> _showTaskInputDialog(_TaskItem task) async {
+    final controller = TextEditingController();
+    final label = task.inputLabel ?? 'Observation';
+    final hint = task.inputHint ?? 'Enter value';
+    final unit = task.inputUnit?.trim() ?? '';
+
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(label),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: hint,
+              suffixText: unit.isEmpty ? null : unit,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final input = controller.text.trim();
+                if (input.isEmpty) return;
+                Navigator.of(context).pop(input);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return value;
+  }
+
+  void _appendTaskToActionLog(_TaskItem task, {String? capturedInput}) {
+    final now = DateTime.now();
+    final inputLabel = (task.inputLabel ?? 'Input').trim();
+    final inputUnit = (task.inputUnit ?? '').trim();
+    final inputSuffix =
+        capturedInput == null
+            ? ''
+            : ' | $inputLabel: $capturedInput${inputUnit.isEmpty ? '' : ' $inputUnit'}';
+    final baseNotes = 'Marked complete from Action Center';
+
+    cropLogs.insert(
+      0,
+      CropAction(
+        id: now.millisecondsSinceEpoch,
+        farmCropId: int.tryParse(widget.crop.id) ?? 0,
+        date: now,
+        action: task.isIrrigation ? 'Irrigated' : task.title,
+        notes: '$baseNotes$inputSuffix',
+      ),
+    );
+  }
+
+  String? _nullableText(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 
   Widget _buildFertilizerSection() {
@@ -728,7 +1056,9 @@ class _CropsScreenState extends State<CropsScreen> {
     final resolvedLocation =
         widget.crop.location.trim().isNotEmpty
             ? widget.crop.location.trim()
-            : (locationFromProfile.isEmpty ? 'Not provided' : locationFromProfile);
+            : (locationFromProfile.isEmpty
+                ? 'Not provided'
+                : locationFromProfile);
 
     Navigator.push(
       context,

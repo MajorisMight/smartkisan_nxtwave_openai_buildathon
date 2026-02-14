@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -8,6 +9,8 @@ class GptService {
   GptService._();
 
   static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
+  static const String _defaultTextModel = 'gpt-5';
+  static const String _defaultVisionModel = 'gpt-5.2';
   static String? _apiKey;
 
   static Future<void> ensureInitialized() async {
@@ -31,10 +34,7 @@ class GptService {
     final mimeType = _mimeTypeForPath(imageFile.path);
 
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_VISION']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_VISION', _defaultVisionModel),
       messages: [
         {
           'role': 'user',
@@ -57,10 +57,7 @@ class GptService {
   }) async {
     await ensureInitialized();
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_TEXT', _defaultTextModel),
       messages: [
         {'role': 'user', 'content': _buildWeatherAdvisoryPrompt(contextData)},
       ],
@@ -78,10 +75,7 @@ class GptService {
     final mimeType = _mimeTypeForPath(imageFile.path);
 
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_VISION']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_VISION', _defaultVisionModel),
       messages: [
         {
           'role': 'user',
@@ -104,10 +98,7 @@ class GptService {
   }) async {
     await ensureInitialized();
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_TEXT', _defaultTextModel),
       messages: [
         {'role': 'user', 'content': _buildFertilizerPrompt(contextData)},
       ],
@@ -121,12 +112,23 @@ class GptService {
   }) async {
     await ensureInitialized();
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_TEXT', _defaultTextModel),
       messages: [
         {'role': 'user', 'content': _buildCropSuggestionPrompt(contextData)},
+      ],
+      temperature: 0.1,
+    );
+    return _safeJson(content);
+  }
+
+  static Future<Map<String, dynamic>> actionCenterSuggestions({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    final content = await _chatCompletion(
+      model: _envModel('GPT_MODEL_TEXT', _defaultTextModel),
+      messages: [
+        {'role': 'user', 'content': _buildActionCenterPrompt(contextData)},
       ],
       temperature: 0.1,
     );
@@ -138,27 +140,51 @@ class GptService {
   }) async {
     await ensureInitialized();
     final prompt = _buildSchemesPrompt(profile);
-    print('[GptService] Schemes prompt: $prompt');
+    debugPrint('[GptService] Schemes prompt: $prompt');
     final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
+      model: _envModel('GPT_MODEL_TEXT', _defaultTextModel),
       messages: [
         {'role': 'user', 'content': prompt},
       ],
       temperature: 0.1,
       responseFormatJsonObject: false,
     );
-    print('[GptService] Schemes raw response: $content');
+    debugPrint('[GptService] Schemes raw response: $content');
 
     final parsed = _safeJsonDynamic(content);
     final extracted = _extractSchemeList(parsed);
-    print('[GptService] Schemes parsed list count: ${extracted.length}');
+    debugPrint('[GptService] Schemes parsed list count: ${extracted.length}');
     return extracted;
   }
 
   static Future<String> _chatCompletion({
+    required String model,
+    required List<Map<String, dynamic>> messages,
+    required double temperature,
+    bool responseFormatJsonObject = true,
+  }) async {
+    Exception? lastError;
+    final candidateModels = [model, ..._fallbackModels(model)];
+    final attempted = <String>{};
+    for (final candidate in candidateModels) {
+      if (!attempted.add(candidate)) continue;
+      try {
+        return await _chatCompletionOnce(
+          model: candidate,
+          messages: messages,
+          temperature: temperature,
+          responseFormatJsonObject: responseFormatJsonObject,
+        );
+      } on Exception catch (e) {
+        lastError = e;
+        if (!_isModelSelectionError(e.toString())) rethrow;
+      }
+    }
+    if (lastError != null) throw lastError;
+    throw Exception('OpenAI API request failed');
+  }
+
+  static Future<String> _chatCompletionOnce({
     required String model,
     required List<Map<String, dynamic>> messages,
     required double temperature,
@@ -203,6 +229,44 @@ class GptService {
       if (content != null && content.trim().isNotEmpty) return content;
     }
     throw Exception('OpenAI API returned empty content');
+  }
+
+  static String _envModel(String key, String fallback) {
+    final cleaned = _cleanEnvValue(dotenv.env[key]);
+    if (cleaned == null || cleaned.isEmpty) return fallback;
+    return cleaned;
+  }
+
+  static String? _cleanEnvValue(String? raw) {
+    if (raw == null) return null;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.length >= 2 &&
+        ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+            (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
+      return trimmed.substring(1, trimmed.length - 1).trim();
+    }
+    return trimmed;
+  }
+
+  static List<String> _fallbackModels(String requestedModel) {
+    final cleaned = requestedModel.trim();
+    if (cleaned.startsWith('gpt-5')) {
+      return const ['gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini'];
+    }
+    if (cleaned.startsWith('gpt-4.1')) {
+      return const ['gpt-4.1-mini'];
+    }
+    return const ['gpt-5', 'gpt-4.1', 'gpt-4.1-mini'];
+  }
+
+  static bool _isModelSelectionError(String message) {
+    final m = message.toLowerCase();
+    return m.contains('model') &&
+        (m.contains('not found') ||
+            m.contains('does not exist') ||
+            m.contains('unsupported') ||
+            m.contains('invalid'));
   }
 
   static String _mimeTypeForPath(String path) {
@@ -333,6 +397,48 @@ Rules:
 - Use land area and location context for numbers.
 - If marketplace data is unavailable, use regional averages and mark confidence accordingly.
 - Keep output concise and actionable.
+
+INPUT_CONTEXT:
+$ctx
+''';
+  }
+
+  static String _buildActionCenterPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are a farm operations planner.
+Input contains deterministic signals from crop timeline and weather modules.
+
+Return ONLY valid JSON object in this exact schema:
+{
+  "summary": "string",
+  "tasks": [
+    {
+      "id": "string",
+      "title": "string",
+      "subtitle": "string",
+      "priority": "low|medium|high",
+      "is_irrigation": boolean,
+      "completion_type": "simple|with_input",
+      "input_config": {
+        "label": "string",
+        "placeholder": "string",
+        "unit": "string"
+      }
+    }
+  ]
+}
+
+Rules:
+- Generate 2 to 6 tasks.
+- Use only the provided signals; do not invent external facts.
+- Prioritize by risk and time-sensitivity.
+- Keep titles short and actionable.
+- Keep subtitles practical and human-readable.
+- At least one task can be "with_input" when measurement/observation is useful.
+- For "simple" tasks, return `input_config` as null.
+- For "with_input" tasks, provide concise input label and placeholder.
+- If signals are weak, still return at least 2 conservative monitoring tasks.
+- No markdown. No extra keys.
 
 INPUT_CONTEXT:
 $ctx
