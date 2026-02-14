@@ -132,22 +132,6 @@ class GeminiService {
     return const [];
   }
 
-  static Future<Map<String, dynamic>> weatherAdvisories({
-    required Map<String, dynamic> contextData,
-  }) async {
-    await ensureInitialized();
-    if (_modelText == null) throw Exception('Gemini not initialized');
-    final resp = await _modelText!.generateContent(
-      [Content.text(_buildWeatherAdvisoryPrompt(contextData))],
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-      ),
-    );
-    final text = resp.text ?? '{}';
-    return _safeJson(text);
-  }
-
   static String _buildDiseasePrompt(Map<String, dynamic> ctx) {
     //TODO: refine prompt after all the features and inputs are live.
     return '''

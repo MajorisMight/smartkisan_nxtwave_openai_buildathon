@@ -6,15 +6,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kisan/models/crop.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
 import '../services/recommendation_service.dart';
 
 class DiseaseDetectScreen extends StatefulWidget {
-  const DiseaseDetectScreen({super.key, this.crop});
-
-  final Crop? crop;
+  const DiseaseDetectScreen({super.key});
 
   @override
   State<DiseaseDetectScreen> createState() => _DiseaseDetectScreenState();
@@ -50,7 +47,6 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
       try {
         await _loadProfile();
         final selectedCropName =
-            widget.crop?.name ??
             profile['crop']?.toString() ??
             profile['crop_name']?.toString() ??
             'Unknown crop';

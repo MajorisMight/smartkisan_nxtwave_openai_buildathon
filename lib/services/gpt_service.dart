@@ -52,6 +52,23 @@ class GptService {
     return _safeJson(content);
   }
 
+  static Future<Map<String, dynamic>> weatherAdvisories({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    final content = await _chatCompletion(
+      model:
+          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
+              : 'gpt-4.1-mini',
+      messages: [
+        {'role': 'user', 'content': _buildWeatherAdvisoryPrompt(contextData)},
+      ],
+      temperature: 0.1,
+    );
+    return _safeJson(content);
+  }
+
   static Future<Map<String, dynamic>> extractSoilTestFromImage({
     required File imageFile,
   }) async {
@@ -139,23 +156,6 @@ class GptService {
     final extracted = _extractSchemeList(parsed);
     print('[GptService] Schemes parsed list count: ${extracted.length}');
     return extracted;
-  }
-
-  static Future<Map<String, dynamic>> weatherAdvisories({
-    required Map<String, dynamic> contextData,
-  }) async {
-    await ensureInitialized();
-    final content = await _chatCompletion(
-      model:
-          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-              : 'gpt-4.1-mini',
-      messages: [
-        {'role': 'user', 'content': _buildWeatherAdvisoryPrompt(contextData)},
-      ],
-      temperature: 0.1,
-    );
-    return _safeJson(content);
   }
 
   static Future<String> _chatCompletion({

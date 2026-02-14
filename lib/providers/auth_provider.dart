@@ -1,175 +1,89 @@
+// 1. Create a provider to track pending email confirmation
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kisan/providers/auth_repository.dart';
 import 'package:flutter/material.dart';
-import '../models/farmer.dart';
-import '../services/auth_service.dart';
+import 'package:kisan/providers/profile_provider.dart';
+import 'package:kisan/services/session_service.dart';
 
-class AuthProvider with ChangeNotifier {
-  Farmer? _currentUser;
-  bool _isLoading = false;
-  bool _isLoggedIn = false;
-  String? _error;
+final pendingEmailConfirmationProvider = StateProvider<String?>((ref) => null);
 
-  // Getters
-  Farmer? get currentUser => _currentUser;
-  bool get isLoading => _isLoading;
-  bool get isLoggedIn => _isLoggedIn;
-  String? get error => _error;
+// 2. Updated AuthNotifier that handles navigation directly
+class AuthNotifier extends StateNotifier<AsyncValue<void>> {
+  final AuthRepository _authRepository;
+  final Ref _ref;
 
-  // Initialize auth state
-  Future<void> initialize() async {
-    _setLoading(true);
-    try {
-      _isLoggedIn = await AuthService.isLoggedIn();
-      if (_isLoggedIn) {
-        _currentUser = await AuthService.getCurrentUser();
+  AuthNotifier(this._authRepository, this._ref)
+    : super(const AsyncValue.data(null));
+
+  Future<void> signUp(
+    String email,
+    String password,
+    BuildContext context,
+  ) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final response = await _authRepository.signUp(
+        email: email,
+        password: password,
+      );
+
+      // If sign up was successful but no session (email confirmation required)
+      if (response.user != null && response.session == null) {
+        print('Sign up successful - email confirmation required');
+        // Set the pending email confirmation
+        _ref.read(pendingEmailConfirmationProvider.notifier).state = email;
+        // Navigate directly to confirm email screen
+        // context.go('/confirm-email');
+      } else if (response.user != null && response.session != null) {
+        print('Sign up successful - email already confirmed');
+        // Clear any pending confirmation
+        _ref.read(pendingEmailConfirmationProvider.notifier).state = null;
+        // Let the redirect logic handle navigation to home/onboarding
       }
-    } catch (e) {
-      _setError('Failed to initialize authentication: $e');
-    } finally {
-      _setLoading(false);
-    }
+    });
   }
 
-  // Login
-  Future<bool> login(String phoneNumber, String password) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.login(phoneNumber, password);
-      if (success) {
-        _isLoggedIn = true;
-        _currentUser = await AuthService.getCurrentUser();
-        notifyListeners();
-        return true;
-      } else {
-        _setError('Invalid phone number or password');
-        return false;
-      }
-    } catch (e) {
-      _setError('Login failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Register
-  Future<bool> register(Farmer farmer, String password) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.register(farmer, password);
-      if (success) {
-        _isLoggedIn = true;
-        _currentUser = farmer;
-        notifyListeners();
-        return true;
-      } else {
-        _setError('Registration failed');
-        return false;
-      }
-    } catch (e) {
-      _setError('Registration failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Logout
-  Future<void> logout() async {
-    _setLoading(true);
-    try {
-      await AuthService.logout();
-      _isLoggedIn = false;
-      _currentUser = null;
-      notifyListeners();
-    } catch (e) {
-      _setError('Logout failed: $e');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Update profile
-  Future<bool> updateProfile(Farmer farmer) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.updateProfile(farmer);
-      if (success) {
-        _currentUser = farmer;
-        notifyListeners();
-        return true;
-      } else {
-        _setError('Profile update failed');
-        return false;
-      }
-    } catch (e) {
-      _setError('Profile update failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Change password
-  Future<bool> changePassword(String oldPassword, String newPassword) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.changePassword(oldPassword, newPassword);
-      if (!success) {
-        _setError('Password change failed');
-      }
-      return success;
-    } catch (e) {
-      _setError('Password change failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Forgot password
-  Future<bool> forgotPassword(String phoneNumber) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.forgotPassword(phoneNumber);
-      if (!success) {
-        _setError('Password reset failed');
-      }
-      return success;
-    } catch (e) {
-      _setError('Password reset failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Helper methods
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _error = null;
-    notifyListeners();
-  }
-
-  void clearError() {
-    _clearError();
+  Future<void> signIn(String email, String password) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final response = await _authRepository.signIn(
+        email: email,
+        password: password,
+      );
+      print('Sign in successful: ${response.user?.email}');
+      // Clear any pending confirmation on successful sign in
+      _ref.read(pendingEmailConfirmationProvider.notifier).state = null;
+    });
   }
 }
+
+// Updated provider
+final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>((
+  ref,
+) {
+  final authRepository = ref.watch(authRepositoryProvider);
+  return AuthNotifier(authRepository, ref);
+});
+
+// You'll need a provider to check onboarding status
+final onboardingCompleteProvider = FutureProvider<bool>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  if (supabase.auth.currentUser == null) return false;
+
+  // Prefer local completion state to avoid redirect loops right after save.
+  final localOnboardingComplete = await SessionService.isOnboardingComplete();
+  if (localOnboardingComplete) return true;
+
+  try {
+    final profile =
+        await supabase
+            .from('farmers')
+            .select('name')
+            .eq('id', supabase.auth.currentUser!.id)
+            .single();
+    return profile['name'] != null;
+  } catch (e) {
+    // Fallback to local flag to avoid redirect loops when RLS/policy blocks read.
+    return SessionService.isOnboardingComplete();
+  }
+});

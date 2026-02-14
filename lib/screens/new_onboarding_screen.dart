@@ -7,11 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:kisan/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_colors.dart';
-import '../models/onboarding_profile.dart';
-import '../providers/profile_provider.dart';
 import '../services/session_service.dart';
 
 class NewOnboardingScreen extends StatefulWidget {
@@ -507,25 +505,54 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
       'areaUnit': _selectedAreaUnit,
     };
 
-    await SessionService.saveOnboardingDraft(draft);
-    final profile = FarmerProfile.fromDraft(draft);
-    final provider = context.read<ProfileProvider>();
-    await provider.saveProfile(profile);
+    try {
+      print('[Onboarding] Save started');
+      await SessionService.saveOnboardingDraft(draft);
+      await _saveProfileToSupabase(draft);
+      await SessionService.setOnboardingComplete(true);
+      await SessionService.setLoggedIn(true);
+      print('[Onboarding] Save complete; navigating to /home');
+      if (!mounted) return;
+      context.go('/home');
+    } catch (e) {
+      print('[Onboarding] Save failed: $e');
+      _showSnack('Could not complete onboarding. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _skip() async {
+    final draft = <String, dynamic>{'name': 'Guest'};
+    await _saveProfileToSupabase(draft);
     await SessionService.setOnboardingComplete(true);
     await SessionService.setLoggedIn(true);
     if (!mounted) return;
     context.go('/home');
   }
 
-  Future<void> _skip() async {
-    final draft = <String, dynamic>{'name': 'Guest'};
-    final profile = FarmerProfile.fromDraft(draft);
-    final provider = context.read<ProfileProvider>();
-    await provider.saveProfile(profile);
-    await SessionService.setOnboardingComplete(true);
-    await SessionService.setLoggedIn(true);
-    if (!mounted) return;
-    context.go('/home');
+  Future<void> _saveProfileToSupabase(Map<String, dynamic> draft) async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    
+    if (user == null) {
+      print('[Onboarding] No current Supabase user; skipping DB save');
+      return;
+    }
+    //todo: setup storage for profile photo upload.
+    // Extract the photo URL from authentication metadata
+    final String? authPhotoUrl = user.userMetadata?['avatar_url'] 
+                              ?? user.userMetadata?['picture'];
+
+    await client.from('farmers').upsert({
+      'id': user.id,
+      'name': (draft['name'] ?? '').toString(),
+      'village': (draft['village'] ?? '').toString(),
+      'district': (draft['district'] ?? '').toString(),
+      'state': (draft['state'] ?? '').toString(),
+      'photo_url': authPhotoUrl,
+    });
+    print('[Onboarding] Supabase upsert successful for user=${user.id}');
   }
 
   @override
