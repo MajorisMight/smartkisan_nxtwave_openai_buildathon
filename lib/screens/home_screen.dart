@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart' as db_profile;
 import '../providers/profile_provider.dart';
 import 'fertilizer_screen.dart';
+import 'crop_suggestion_screen.dart';
+import '../app_extensions.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,18 +26,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(fullProfileProvider);
+    final basicProfileAsync = ref.watch(farmerBasicProfileProvider);
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(profileAsync),
+                _buildHeader(profileAsync, basicProfileAsync.valueOrNull?.photoUrl),
                 _buildQuickActions(),
                 _buildWeatherStrip(),
                 SizedBox(height: 20.h),
@@ -47,7 +48,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(AsyncValue<db_profile.FarmerProfile> profileAsync) {
+  Widget _buildHeader(
+    AsyncValue<db_profile.FarmerProfile> profileAsync,
+    String? photoUrl,
+  ) {
     final localProfile = context.watch<ProfileProvider>().profile;
     final nameFromLocal = localProfile?.name?.trim();
     final farmFromLocal = localProfile?.village?.trim();
@@ -82,17 +86,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded( // Wrap this Column with Expanded
+          Expanded(
+            // Wrap this Column with Expanded
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Good Morning!',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                // Text(
+                //   'Good Morning!',
+                //   style: GoogleFonts.poppins(
+                //     fontSize: 16.sp,
+                //     color: AppColors.textSecondary,
+                //   ),
+                // ),
                 SizedBox(height: 4.h),
                 Text(
                   name,
@@ -102,13 +107,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                Text(
-                  farmLine,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14.sp,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                // Text(
+                //   farmLine,
+                //   style: GoogleFonts.poppins(
+                //     fontSize: 14.sp,
+                //     color: AppColors.textSecondary,
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -128,10 +133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               SizedBox(width: 12.w),
-              CircleAvatar(
-                radius: 20.r,
-                backgroundImage: AssetImage('assets/images/farmer.jpg'),
-              ),
+              _buildProfileAvatar(photoUrl),
             ],
           ),
         ],
@@ -139,85 +141,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildQuickStats() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20.w),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatItem(
-              'Total Sales',
-              '₹45,230',
-              FontAwesomeIcons.rupeeSign,
-              AppColors.success,
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 40.h,
-            color: AppColors.borderLight,
-          ),
-          Expanded(
-            child: _buildStatItem(
-              'Active Orders',
-              '12',
-              FontAwesomeIcons.cartShopping,
-              AppColors.info,
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 40.h,
-            color: AppColors.borderLight,
-          ),
-          Expanded(
-            child: _buildStatItem(
-              'Products',
-              '8',
-              FontAwesomeIcons.box,
-              AppColors.warning,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildProfileAvatar(String? photoUrl) {
+    final validPhotoUrl =
+        (photoUrl != null && photoUrl.trim().isNotEmpty) ? photoUrl : null;
+    return CircleAvatar(
+      radius: 20.r,
+      backgroundColor: AppColors.greyLight,
+      backgroundImage: validPhotoUrl != null ? NetworkImage(validPhotoUrl) : null,
+      child: validPhotoUrl == null
+          ? Icon(
+              Icons.person,
+              color: AppColors.textSecondary,
+              size: 18.sp,
+            )
+          : null,
     );
   }
 
-  Widget _buildStatItem(String title, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 20.sp),
-        SizedBox(height: 8.h),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 12.sp,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildQuickActions() {
     return Container(
@@ -226,7 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quick Actions',
+            context.l10n.homeQuickActionsTitle,
             style: GoogleFonts.poppins(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -235,16 +176,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           SizedBox(height: 16.h),
           _buildPrimaryActionCard(
-            title: 'My Crops',
-            subtitle: 'Track fields and crop health',
+            title: context.l10n.homeActionCrops,
+            subtitle: context.l10n.homeActionCropsDesc,
             icon: FontAwesomeIcons.seedling,
             color: AppColors.primaryGreen,
             onTap: () => context.push('/crops'),
           ),
           SizedBox(height: 12.h),
           _buildPrimaryActionCard(
-            title: 'Baseline Fertilizer',
-            subtitle: 'Pre-planting nutrient baseline planner',
+            title: context.l10n.homeActionFertilizer,
+            subtitle: context.l10n.homeActionFertilizerDesc,
             icon: FontAwesomeIcons.flaskVial,
             color: AppColors.secondaryOrange,
             onTap:
@@ -256,11 +197,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
           ),
           SizedBox(height: 12.h),
+          _buildPrimaryActionCard(
+            title: context.l10n.homeActionSuggestions,
+            subtitle: context.l10n.homeActionSuggestionsDesc,
+            icon: FontAwesomeIcons.wandMagicSparkles,
+            color: AppColors.info,
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CropSuggestionScreen(),
+                  ),
+                ),
+          ),
+          SizedBox(height: 12.h),
           Row(
             children: [
               Expanded(
                 child: _buildActionCard(
-                  title: 'Disease Detection',
+                  title: context.l10n.homeActionDisease,
                   icon: FontAwesomeIcons.microscope,
                   color: AppColors.info,
                   onTap: () => context.go('/disease-detect'),
@@ -269,7 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: _buildActionCard(
-                  title: 'Govt Schemes',
+                  title: context.l10n.homeActionSchemes,
                   icon: FontAwesomeIcons.fileLines,
                   color: AppColors.info,
                   onTap: () => context.go('/schemes'),
@@ -329,9 +284,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
                   color:
-                      enabled
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                      enabled ? AppColors.textPrimary : AppColors.textSecondary,
                 ),
               ),
               if (!enabled) ...[
@@ -410,10 +363,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -693,76 +643,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          switch (index) {
-            case 0:
-              context.go('/home');
-              break;
-            case 1:
-              context.go('/marketplace');
-              break;
-            case 2:
-              context.go('/weather');
-              break;
-            case 3:
-              context.go('/community');
-              break;
-            case 4:
-              context.go('/profile');
-              break;
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.primaryGreen,
-        unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: GoogleFonts.poppins(fontSize: 12.sp),
-        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12.sp),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store_outlined),
-            activeIcon: Icon(Icons.store),
-            label: 'Marketplace',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.wb_sunny_outlined),
-            activeIcon: Icon(Icons.wb_sunny),
-            label: 'Weather',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            activeIcon: Icon(Icons.people),
-            label: 'Community',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
 }

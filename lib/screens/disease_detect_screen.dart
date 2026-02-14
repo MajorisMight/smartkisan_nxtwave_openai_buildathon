@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-
+import '../app_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -231,7 +231,7 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
           },
         ),
         title: Text(
-          'Disease Detection',
+          context.l10n.diseaseDetectTitle,
           style: GoogleFonts.poppins(
             fontSize: 20.sp,
             fontWeight: FontWeight.w700,
@@ -291,7 +291,7 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Capture or upload crop image',
+                  context.l10n.diseaseIntruction,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -301,7 +301,7 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
                   ),
                 ),
                 Text(
-                  'Use clear daylight photos for better accuracy',
+                  context.l10n.diseaseHint,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -324,7 +324,7 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
           child: ElevatedButton.icon(
             onPressed: () => _pick(ImageSource.camera),
             icon: const Icon(Icons.photo_camera),
-            label: const Text('Camera'),
+            label: Text(context.l10n.cameraLabel),
             style: ElevatedButton.styleFrom(
               minimumSize: Size(double.infinity, 48.h),
               backgroundColor: AppColors.primaryGreen,
@@ -338,7 +338,7 @@ class _DiseaseDetectScreenState extends State<DiseaseDetectScreen> {
           child: ElevatedButton.icon(
             onPressed: () => _pick(ImageSource.gallery),
             icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('Gallery'),
+            label:  Text(context.l10n.galleryLabel),
             style: ElevatedButton.styleFrom(
               minimumSize: Size(double.infinity, 48.h),
               backgroundColor: AppColors.white,

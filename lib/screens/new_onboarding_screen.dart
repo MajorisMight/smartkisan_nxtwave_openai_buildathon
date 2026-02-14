@@ -8,7 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:kisan/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../app_extensions.dart';
 import '../constants/app_colors.dart';
 import '../services/session_service.dart';
 
@@ -557,7 +557,7 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    // final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Container(
@@ -599,10 +599,10 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              _sectionTitle(l10n.nameLabel),
+              _sectionTitle(context.l10n.profileLabelName),
               _textField(
                 controller: _nameController,
-                hint: l10n.nameHint,
+                hint: context.l10n.profileNameHint,
                 icon: Icons.person_outline,
               ),
               const SizedBox(height: 24),
@@ -636,12 +636,12 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                   _detectedLocationField(),
                 ],
               ] else ...[
-                _sectionTitle(l10n.stateLabel),
+                _sectionTitle(context.l10n.profileLabelState),
                 _dropdownField(
                   hint:
                       _loadingStates
                           ? 'Loading states...'
-                          : l10n.selectStateHint,
+                          : context.l10n.stateHint,
                   value: _selectedState,
                   items: _states,
                   loading: _loadingStates,
@@ -663,14 +663,14 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                _sectionTitle(l10n.districtLabel),
+                _sectionTitle(context.l10n.profileLabelDistrict),
                 _dropdownField(
                   hint:
                       _selectedState == null
                           ? 'Select a state first'
                           : _loadingDistricts
                           ? 'Loading districts...'
-                          : l10n.selectDistrictHint,
+                          : context.l10n.selectDistrictHint,
                   value: _selectedDistrict,
                   items: _districts,
                   loading: _loadingDistricts,
@@ -690,14 +690,14 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                _sectionTitle(l10n.tehsilLabel),
+                _sectionTitle(context.l10n.labelTehsil),
                 _dropdownField(
                   hint:
                       _selectedDistrict == null
                           ? 'Select a district first'
                           : _loadingTowns
                           ? 'Loading towns...'
-                          : l10n.villageTownHint,
+                          : context.l10n.villageTownHint,
                   value: _selectedTown,
                   items: _towns,
                   loading: _loadingTowns,
@@ -707,13 +707,13 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              _sectionTitle(l10n.totalFarmAreaLabel),
+              _sectionTitle(context.l10n.totalFarmAreaLabel),
               Row(
                 children: [
                   Expanded(
                     child: _textField(
                       controller: _landSizeController,
-                      hint: l10n.farmAreaHint,
+                      hint: context.l10n.farmAreaHint,
                       icon: Icons.square_foot,
                     ),
                   ),
@@ -777,7 +777,7 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
                     ),
                   ),
                   child: Text(
-                    _isSaving ? 'Saving...' : 'Continue',
+                    _isSaving ? context.l10n.btnSaving : context.l10n.btnContinue,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -787,7 +787,7 @@ class _NewOnboardingScreenState extends State<NewOnboardingScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'You can edit these anytime from your profile.',
+                context.l10n.profileEditHint,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 12,

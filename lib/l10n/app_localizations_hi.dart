@@ -9,13 +9,10 @@ class AppLocalizationsHi extends AppLocalizations {
   AppLocalizationsHi([String locale = 'hi']) : super(locale);
 
   @override
-  String get selectLanguageTitle => 'भाषा चुनें';
-
-  @override
   String get selectLanguagePrompt => 'कृपया अपनी पसंदीदा भाषा चुनें';
 
   @override
-  String get continueButton => 'जारी रखें';
+  String get selectLanguageTitle => 'भाषा चुनें';
 
   @override
   String languageSelectedSnackbar(Object languageName) {
@@ -23,532 +20,486 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get phoneVer => 'फ़ोन सत्यापन';
+  String get btnSave => 'सहेजें';
 
   @override
-  String get verStatement =>
-      'ओटीपी प्राप्त करने के लिए अपना मोबाइल नंबर दर्ज करें';
+  String get btnContinue => 'जारी रखें';
 
   @override
-  String get phoneNo => 'फ़ोन नंबर';
+  String get btnSaving => 'सहेजा जा रहा है...';
 
   @override
-  String get sendbtn => 'ओटीपी भेजें';
+  String get btnPosting => 'पोस्ट हो रहा है...';
 
   @override
-  String get verifyBtn => 'ओटीपी सत्यापित करें';
+  String get btnPost => 'पोस्ट करें';
 
   @override
-  String get resendBtn => 'ओटीपी फिर से भेजें';
+  String get btnCancel => 'रद्द करें';
 
   @override
-  String onboardingStepLabel(
-    int currentStep,
-    int totalSteps,
-    String stepTitle,
-  ) {
-    return 'चरण $currentStep/$totalSteps • $stepTitle';
+  String get btnClose => 'बंद करें';
+
+  @override
+  String get btnView => 'देखें';
+
+  @override
+  String get btnViewAll => 'सभी देखें';
+
+  @override
+  String get btnRetry => 'पुनः प्रयास करें';
+
+  @override
+  String get btnRefresh => 'ताज़ा करें';
+
+  @override
+  String get lblComingSoon => 'जल्द आ रहा है';
+
+  @override
+  String get lblSearch => 'खोजें...';
+
+  @override
+  String get lblLoading => 'लोड हो रहा है...';
+
+  @override
+  String get navHome => 'होम';
+
+  @override
+  String get navMarketplace => 'बाज़ार';
+
+  @override
+  String get navWeather => 'मौसम';
+
+  @override
+  String get navCommunity => 'समुदाय';
+
+  @override
+  String get navProfile => 'प्रोफ़ाइल';
+
+  @override
+  String get homeGreeting => 'सुप्रभात!';
+
+  @override
+  String get homeDefaultName => 'किसान';
+
+  @override
+  String get homeDefaultFarm => 'खेत सेट नहीं है';
+
+  @override
+  String get homeQuickStatsSales => 'कुल बिक्री';
+
+  @override
+  String get homeQuickStatsOrders => 'सक्रिय ऑर्डर';
+
+  @override
+  String get homeQuickStatsProducts => 'उत्पाद';
+
+  @override
+  String get homeQuickActionsTitle => 'त्वरित कार्य';
+
+  @override
+  String get homeActionCrops => 'मेरी फसलें';
+
+  @override
+  String get homeActionCropsDesc => 'खेतों और फसल स्वास्थ्य को ट्रैक करें';
+
+  @override
+  String get homeActionFertilizer => 'उर्वरक योजना';
+
+  @override
+  String get homeActionFertilizerDesc => 'बुवाई पूर्व पोषक तत्व योजना';
+
+  @override
+  String get homeActionSuggestions => 'फसल सुझाव';
+
+  @override
+  String get homeActionSuggestionsDesc => 'AI द्वारा फसल योजना';
+
+  @override
+  String get homeActionDisease => 'रोग पहचान';
+
+  @override
+  String get homeActionSchemes => 'सरकारी योजनाएं';
+
+  @override
+  String get homeRecentOrders => 'हाल के ऑर्डर';
+
+  @override
+  String get homeCommunityUpdates => 'समुदाय अपडेट';
+
+  @override
+  String get marketTitle => 'बाज़ार';
+
+  @override
+  String get marketSubtitle => 'कृषि उत्पाद खरीदें और बेचें';
+
+  @override
+  String get marketSearchHint => 'उत्पाद खोजें...';
+
+  @override
+  String get marketLabelOrganic => 'जैविक';
+
+  @override
+  String get marketNoDescription => 'कोई विवरण नहीं जोड़ा गया।';
+
+  @override
+  String marketLabelStock(Object quantity, Object unit) {
+    return 'स्टॉक: $quantity $unit';
   }
 
   @override
-  String get stepTitleBasicInfo => 'मूल जानकारी';
+  String get weightUnitKg => 'किग्रा';
 
   @override
-  String get stepTitleLocation => 'स्थान';
+  String get weightUnitTon => 'टन';
 
   @override
-  String get stepTitleCrops => 'फसलें';
+  String get weightUnitQuintal => 'क्विंटल';
 
   @override
-  String get stepTitleSoilAndWater => 'मिट्टी और पानी';
+  String get weightUnitPiece => 'नग';
 
   @override
-  String get stepTitlePastYields => 'पिछली पैदावार';
+  String get weightUnitBag => 'बोरी';
 
   @override
-  String get stepTitleFinanceAndFinish => 'वित्त और समाप्त';
+  String get unitLabel => 'इकाई';
 
   @override
-  String get backButton => 'वापस';
+  String get marketEmptyState => 'कोई उत्पाद नहीं मिला';
 
   @override
-  String get nextButton => 'अगला';
+  String get marketErrorLoad => 'उत्पाद लोड करने में असमर्थ।';
 
   @override
-  String get finishAndGoToDashboardButton => 'समाप्त करें और डैशबोर्ड पर जाएं';
+  String get addProductTitle => 'उत्पाद जोड़ें';
 
   @override
-  String get languageTooltip => 'भाषा';
+  String get addProductLabelName => 'नाम';
 
   @override
-  String get tellUsAboutYouTitle => 'हमें अपने बारे में बताएं';
+  String get addProductLabelDesc => 'विवरण';
 
   @override
-  String get nameLabel => 'नाम (वैकल्पिक)';
+  String get addProductLabelPrice => 'कीमत';
 
   @override
-  String get nameHint => 'उदा., राम कुमार';
+  String get addProductLabelStock => 'स्टॉक मात्रा';
 
   @override
-  String get ageRangeLabel => 'आयु सीमा *';
+  String get addProductLabelCategory => 'श्रेणी';
 
   @override
-  String get ageRangeUnder30 => '30 से कम';
+  String get addProductLabelUnit => 'इकाई';
 
   @override
-  String get ageRange30to55 => '30-55';
+  String get addProductCheckboxOrganic => 'जैविक उत्पाद';
 
   @override
-  String get ageRangeOver55 => '55 से अधिक';
+  String get addProductBtnAddPhoto => 'फोटो जोड़ें';
 
   @override
-  String get preferredLanguageLabel => 'पसंदीदा भाषा *';
+  String get addProductBtnChangePhoto => 'फोटो बदलें';
 
   @override
-  String get selectLanguageHint => 'भाषा चुनें';
+  String get addProductMsgSuccess => 'उत्पाद सफलतापूर्वक जोड़ा गया।';
 
   @override
-  String get languageHindi => 'हिन्दी';
-
-  @override
-  String get languageEnglish => 'अंग्रेज़ी';
-
-  @override
-  String get languageRegional => 'क्षेत्रीय';
-
-  @override
-  String get farmingExperienceLabel => 'खेती का अनुभव *';
-
-  @override
-  String get selectExperienceHint => 'अनुभव चुनें';
-
-  @override
-  String get experienceBeginner => 'शुरुआती <5 वर्ष';
-
-  @override
-  String get experienceIntermediate => 'मध्यम 5-15 वर्ष';
-
-  @override
-  String get experienceExpert => 'विशेषज्ञ >15 वर्ष';
-
-  @override
-  String get casteCategoryLabel => 'जाति/श्रेणी (वैकल्पिक)';
-
-  @override
-  String get selectCasteHint => 'चुनें';
-
-  @override
-  String get casteGeneral => 'सामान्य';
-
-  @override
-  String get casteSC => 'अनुसूचित जाति';
-
-  @override
-  String get casteST => 'अनुसूचित जनजाति';
-
-  @override
-  String get casteOBC => 'अन्य पिछड़ा वर्ग';
-
-  @override
-  String get casteOther => 'अन्य';
-
-  @override
-  String get castePreferNotToSay => 'बताना नहीं चाहते';
-
-  @override
-  String get farmLocationTitle => 'खेत का स्थान और सामान्य विवरण';
-
-  @override
-  String get useMyLocationButton => 'मेरे स्थान का उपयोग करें';
-
-  @override
-  String mapPreviewPlaceholder(String lat, String lon) {
-    return 'मानचित्र पूर्वावलोकन यहाँ ($lat, $lon)';
+  String addProductMsgError(Object error) {
+    return 'उत्पाद जोड़ने में असमर्थ: $error';
   }
 
   @override
-  String get tehsilLabel => 'गाँव / कस्बा';
+  String get addProductMsgRequired => 'नाम, कीमत और स्टॉक आवश्यक हैं।';
 
   @override
-  String get villageTownHint => 'गाँव/कस्बा टाइप करें';
+  String get catAll => 'सभी';
 
   @override
-  String get districtLabel => 'ज़िला';
+  String get catFertilizers => 'उर्वरक';
+
+  @override
+  String get catSeeds => 'बीज';
+
+  @override
+  String get catPesticides => 'कीटनाशक';
+
+  @override
+  String get catEquipment => 'उपकरण';
+
+  @override
+  String get catOrganic => 'जैविक';
+
+  @override
+  String get commTitle => 'समुदाय';
+
+  @override
+  String get commSubtitle => 'साथी किसानों से जुड़ें';
+
+  @override
+  String get commSearchHint => 'पोस्ट खोजें...';
+
+  @override
+  String get commEmptyState => 'कोई पोस्ट नहीं मिली';
+
+  @override
+  String get commErrorLoad => 'पोस्ट लोड करने में असमर्थ।';
+
+  @override
+  String get commBtnCreate => 'नई पोस्ट बनाएं';
+
+  @override
+  String get commDialogTitle => 'नई पोस्ट बनाएं';
+
+  @override
+  String get commLabelTitle => 'शीर्षक';
+
+  @override
+  String get commLabelContent => 'सामग्री';
+
+  @override
+  String get commLabelTags => 'टैग (अल्पविराम से अलग करें)';
+
+  @override
+  String get commBtnAddPhoto => 'फोटो जोड़ें';
+
+  @override
+  String get commBtnChangePhoto => 'फोटो बदलें';
+
+  @override
+  String get commMsgSuccess => 'पोस्ट सफलतापूर्वक बनाई गई।';
+
+  @override
+  String get commMsgRequired => 'शीर्षक और सामग्री आवश्यक हैं।';
+
+  @override
+  String get commCommentsTitle => 'टिप्पणियाँ';
+
+  @override
+  String get commCommentsHint => 'एक टिप्पणी लिखें...';
+
+  @override
+  String get commCommentsEmpty => 'अभी तक कोई टिप्पणी नहीं';
+
+  @override
+  String get commCommentsError => 'टिप्पणियाँ लोड करने में असमर्थ।';
+
+  @override
+  String commPostError(Object error) {
+    return 'पोस्ट बनाने में असमर्थ: $error';
+  }
+
+  @override
+  String get catFarmingTips => 'खेती के टिप्स';
+
+  @override
+  String get catMarketUpdates => 'बाज़ार अपडेट';
+
+  @override
+  String get catWeatherAlerts => 'मौसम अलर्ट';
+
+  @override
+  String get catSuccessStories => 'सफलता की कहानियां';
+
+  @override
+  String get catQA => 'प्रश्न और उत्तर';
+
+  @override
+  String get profileTitle => 'प्रोफ़ाइल';
+
+  @override
+  String get profileEditHint =>
+      'आप इन्हें अपनी प्रोफ़ाइल से कभी भी संपादित कर सकते हैं।';
+
+  @override
+  String get profileTabPersonal => 'व्यक्तिगत जानकारी';
+
+  @override
+  String get profileTabAddress => 'पता';
+
+  @override
+  String get profileLabelName => 'नाम';
+
+  @override
+  String get profileNameHint => 'अपना नाम दर्ज करें';
+
+  @override
+  String get profileLabelVillage => 'गाँव';
+
+  @override
+  String get profileLabelDistrict => 'ज़िला';
 
   @override
   String get selectDistrictHint => 'ज़िला चुनें';
 
   @override
-  String get stateLabel => 'राज्य';
+  String get profileLabelState => 'राज्य';
 
   @override
-  String get selectStateHint => 'राज्य चुनें';
+  String get stateHint => 'राज्य चुनें';
 
   @override
-  String get totalFarmAreaLabel => 'कुल खेत का क्षेत्रफल *';
+  String get labelTehsil => 'तहसील';
 
   @override
-  String get farmAreaHint => 'उदा., 2.5';
+  String get villageTownHint => 'गाँव/कस्बा टाइप करें';
 
   @override
-  String get areaUnitAcre => 'एकड़';
+  String get totalFarmAreaLabel => 'कुल खेत क्षेत्र';
 
   @override
-  String get areaUnitHectare => 'हेक्टेयर';
+  String get areaLabel => 'क्षेत्रफल';
 
   @override
-  String get waterSourceLabel => 'पानी का स्रोत (एकाधिक चुनें)';
+  String get farmAreaHint => 'उदाहरण: 2.5';
 
   @override
-  String get waterSourceRiver => 'नदी';
+  String get farmEmptyState => 'कोई फसल नहीं मिली।';
 
   @override
-  String get waterSourceWell => 'कुआँ';
+  String get cropStatisticsTitle => 'फसल आंकड़े';
 
   @override
-  String get waterSourceCanal => 'नहर';
+  String get totalcropsLabel => 'कुल फसलें';
 
   @override
-  String get waterSourceRainfed => 'वर्षा';
+  String get avgYieldLabel => 'औसत उपज';
 
   @override
-  String get waterSourceBorewell => 'बोरवेल';
+  String get activeCropsLabel => 'सक्रिय फसलें';
 
   @override
-  String get farmerGroupMembershipLabel =>
-      'किसान समूह / सहकारी समिति की सदस्यता';
+  String get readyForHarvestLabel => 'कटाई के लिए तैयार';
 
   @override
-  String get yes => 'हाँ';
+  String get addCropTitle => 'फसल जोड़ें';
 
   @override
-  String get no => 'नहीं';
+  String get cropTypeLabel => 'फसल का प्रकार';
 
   @override
-  String get groupNameHint => 'समूह का नाम';
+  String get cropTypeHint => 'फसल प्रकार चुनें';
 
   @override
-  String get cropsAndPracticesTitle => 'फसलें और प्रथाएँ';
+  String get sownAreaLabel => 'बोया गया क्षेत्र (एकड़)';
 
   @override
-  String get primaryCropsLabel => 'मुख्य फसलें (एकाधिक चुनें)';
+  String get sownAreaHint => 'उदाहरण: 1.5';
 
   @override
-  String get cropWheat => 'गेहूँ';
+  String get sownAreaHintError => 'कृपया मान्य क्षेत्र दर्ज करें';
 
   @override
-  String get cropMoong => 'मूँग';
+  String get plantedDateLabel => 'रोपण की तारीख';
 
   @override
-  String get cropIsabgol => 'इसबगोल';
+  String get cropLabelHint => 'उदाहरण: गेहूं - जुलाई खेत';
 
   @override
-  String get cropMustard => 'सरसों';
+  String get cropLabelHintError => 'कृपया फसल लेबल दर्ज करें';
 
   @override
-  String get cropGroundnut => 'मूँगफली';
+  String get cropSaveError => 'सर्वर पर फसल सहेजने में असमर्थ';
 
   @override
-  String get cropCotton => 'कपास';
-
-  @override
-  String get currentFieldStatusLabel => 'खेत की वर्तमान स्थिति';
-
-  @override
-  String get selectStatusHint => 'स्थिति चुनें';
-
-  @override
-  String get fieldStatusPreparing => 'तैयारी';
-
-  @override
-  String get fieldStatusSowing => 'बुवाई';
-
-  @override
-  String get fieldStatusGrowing => 'बढ़वार';
-
-  @override
-  String get fieldStatusHarvesting => 'कटाई';
-
-  @override
-  String get expectedAcreageLabel => 'इस फसल के लिए अपेक्षित रकबा';
-
-  @override
-  String get expectedAcreageHint => 'उदा., 1.5';
-
-  @override
-  String get previousCropLabel => 'पिछली फसल (पिछला मौसम)';
-
-  @override
-  String get selectPreviousCropHint => 'पिछली फसल चुनें';
-
-  @override
-  String get previousCropFallow => 'परती';
-
-  @override
-  String get previousCropPulses => 'दालें';
-
-  @override
-  String get previousCropMaize => 'मक्का';
-
-  @override
-  String get previousCropRice => 'चावल';
-
-  @override
-  String get previousCropOilseeds => 'तिलहन';
-
-  @override
-  String get previousCropVegetables => 'सब्जियाँ';
-
-  @override
-  String get previousCropOther => 'अन्य';
-
-  @override
-  String get soilAndWaterReportsTitle => 'मिट्टी और पानी की रिपोर्ट';
-
-  @override
-  String get soilTestReportLabel => 'मिट्टी परीक्षण रिपोर्ट (वैकल्पिक)';
-
-  @override
-  String get uploadPhotoPdfButton => 'फोटो / पीडीएफ अपलोड करें';
-
-  @override
-  String get enterManuallyButton => 'मैन्युअल रूप से दर्ज करें';
-
-  @override
-  String get nValueLabel => 'नाइट्रोजन (ppm)';
-
-  @override
-  String get nValueHint => 'उदा., 120';
-
-  @override
-  String get pValueLabel => 'फॉस्फोरस (ppm)';
-
-  @override
-  String get pValueHint => 'उदा., 18';
-
-  @override
-  String get kValueLabel => 'पोटेशियम (ppm)';
-
-  @override
-  String get kValueHint => 'उदा., 200';
-
-  @override
-  String get phLabel => 'पीएच (1-14)';
-
-  @override
-  String get phHint => 'उदा., 6.8';
-
-  @override
-  String get organicMatterLabel => 'जैविक पदार्थ %';
-
-  @override
-  String get organicMatterHint => 'उदा., 1.5';
-
-  @override
-  String get lastSoilTestDateLabel => 'पिछली मिट्टी परीक्षण की तारीख';
-
-  @override
-  String get lastSoilTestDateHint => 'YYYY-MM-DD';
-
-  @override
-  String get waterQualityLabel => 'पानी की गुणवत्ता';
-
-  @override
-  String get salinityHint => 'खारापन';
-
-  @override
-  String get salinityLow => 'कम';
-
-  @override
-  String get salinityMedium => 'मध्यम';
-
-  @override
-  String get salinityHigh => 'अधिक';
-
-  @override
-  String get waterPhHint => 'पानी का पीएच';
-
-  @override
-  String get bookSoilTestPrompt => 'मिट्टी परीक्षण के लिए बुक करें?';
-
-  @override
-  String get historicalDataTitle => 'ऐतिहासिक डेटा और पिछली पैदावार';
-
-  @override
-  String lastSeasonYieldLabel(String cropName) {
-    return 'पिछले मौसम की पैदावार — $cropName';
+  String addCropSuccessful(Object cropName) {
+    return '$cropName सफलतापूर्वक जोड़ी गई।';
   }
 
   @override
-  String get yieldValueHint => 'मात्रा';
+  String get profileLabelEmail => 'ईमेल';
 
   @override
-  String get yieldUnitHint => 'इकाई';
+  String get profileLabelLanguage => 'भाषा';
 
   @override
-  String get yieldUnitKgPerAcre => 'किग्रा/एकड़';
+  String get profileNotProvided => 'उपलब्ध नहीं';
 
   @override
-  String get yieldUnitQuintalPerAcre => 'क्विंटल/एकड़';
+  String get profileErrorLoad => 'प्रोफ़ाइल लोड करने में असमर्थ';
 
   @override
-  String get planningForThisYearLabel =>
-      'आप इस साल उस जगह पर क्या उगाने की योजना बना रहे हैं?';
+  String get settingsEditProfile => 'प्रोफ़ाइल संपादित करें';
 
   @override
-  String get plannedCropHint => 'फसल चुनें';
+  String get settingsChangePass => 'पासवर्ड बदलें';
 
   @override
-  String get plannedCropNothing => 'कुछ नहीं';
+  String get settingsChangePassDesc => 'नया पासवर्ड सेट करें';
 
   @override
-  String get previousInputsLabel => 'पिछली लागतें (वैकल्पिक)';
+  String get settingsForgotPass => 'पासवर्ड भूल गए';
 
   @override
-  String get inputUrea => 'यूरिया';
+  String get settingsForgotPassDesc => 'ईमेल पर रीसेट लिंक भेजें';
 
   @override
-  String get inputDAP => 'डीएपी';
+  String get settingsLogout => 'लॉग आउट';
 
   @override
-  String get inputNPKBlends => 'एनपीके मिश्रण';
+  String get settingsLogoutDesc => 'इस डिवाइस से साइन आउट करें';
 
   @override
-  String get inputImidacloprid => 'इमिडाक्लोप्रिड';
+  String get settingsDelete => 'खाता हटाएं (जल्द आ रहा है)';
 
   @override
-  String get inputMancozeb => 'मैन्कोज़ेब';
+  String get formCurrentPass => 'वर्तमान पासवर्ड';
 
   @override
-  String get inputOther => 'अन्य';
+  String get formNewPass => 'नया पासवर्ड';
 
   @override
-  String get historicalWeatherImpactsLabel => 'ऐतिहासिक मौसम प्रभाव (वैकल्पिक)';
+  String get formConfirmPass => 'पासवर्ड की पुष्टि करें';
 
   @override
-  String get impactDrought => 'सूखा';
+  String get formBtnUpdatePass => 'पासवर्ड अपडेट करें';
 
   @override
-  String get impactFlood => 'बाढ़';
+  String get formMsgPassSuccess => 'पासवर्ड सफलतापूर्वक अपडेट किया गया';
 
   @override
-  String get impactHeatwave => 'लू';
+  String get formMsgPassResetSent => 'पासवर्ड रीसेट लिंक आपके ईमेल पर भेजा गया';
 
   @override
-  String get impactPestOutbreak => 'कीट प्रकोप';
+  String get formErrorPassMatch =>
+      'नया पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते';
 
   @override
-  String get impactNone => 'कोई नहीं';
+  String get formErrorPassLength => 'न्यूनतम 6 अक्षर आवश्यक हैं';
 
   @override
-  String get uploadPastFarmPhotosLabel =>
-      'पिछले खेत की तस्वीरें या डायरी स्कैन अपलोड करें (वैकल्पिक)';
+  String get imgPickCamera => 'फोटो लें';
 
   @override
-  String get selectFromGalleryButton => 'गैलरी से चुनें';
+  String get imgPickGallery => 'गैलरी से चुनें';
 
   @override
-  String get usedGovSchemesLabel => 'पिछले मौसम में सरकारी योजनाएं उपयोग कीं?';
+  String get imgPreviewUnavailable => 'पूर्वावलोकन उपलब्ध नहीं है';
 
   @override
-  String get whichSchemesHint => 'कौन सी योजनाएं?';
+  String get languageTooltip => 'भाषा चुनें';
 
   @override
-  String get financeAndFinishTitle => 'वित्त और समाप्त';
+  String get languageEnglish => 'English';
 
   @override
-  String get bankAccountLinkedLabel => 'बैंक खाता लिंक है?';
+  String get languageHindi => 'हिंदी';
 
   @override
-  String get bankNameHint => 'बैंक का नाम (वैकल्पिक)';
+  String get profilePhone => 'फ़ोन';
 
   @override
-  String get cropInsuranceEnrolledLabel => 'फसल बीमा में नामांकित हैं?';
+  String get diseaseDetectTitle => 'रोग पहचान';
 
   @override
-  String get insuranceProviderHint => 'प्रदाता (वैकल्पिक)';
+  String get diseaseIntruction => 'फसल की फोटो लें या अपलोड करें';
 
   @override
-  String get annualFarmIncomeLabel => 'वार्षिक कृषि आय सीमा';
+  String get diseaseHint => 'बेहतर सटीकता के लिए दिन के उजाले में साफ फोटो लें';
 
   @override
-  String get selectIncomeHint => 'आय सीमा चुनें';
+  String get cameraLabel => 'कैमरा';
 
   @override
-  String get incomeLow => 'कम <₹1 लाख';
-
-  @override
-  String get incomeMedium => 'मध्यम ₹1-5 लाख';
-
-  @override
-  String get incomeHigh => 'अधिक >₹5 लाख';
-
-  @override
-  String get preferredPaymentMethodLabel => 'पसंदीदा भुगतान विधि';
-
-  @override
-  String get selectPaymentMethodHint => 'भुगतान विधि चुनें';
-
-  @override
-  String get paymentUPI => 'यूपीआई';
-
-  @override
-  String get paymentCOD => 'कैश ऑन डिलीवरी';
-
-  @override
-  String get paymentWallet => 'वॉलेट';
-
-  @override
-  String get consentAnalyticsPrompt =>
-      'AI सुझाव प्राप्त करें और अनुशंसाओं को बेहतर बनाने के लिए अनाम डेटा अपलोड करें।';
-
-  @override
-  String get summaryTitle => 'सारांश';
-
-  @override
-  String get summaryFields => 'खेत';
-
-  @override
-  String summaryAcreage(String cropName) {
-    return '$cropName रकबा';
-  }
-
-  @override
-  String get summaryPrimaryCrops => 'मुख्य फसलें';
-
-  @override
-  String get summaryTotalArea => 'कुल क्षेत्रफल';
-
-  @override
-  String get summarySoilTest => 'मिट्टी परीक्षण';
-
-  @override
-  String get summarySoilTestPresent => 'उपस्थित';
-
-  @override
-  String get summarySoilTestAbsent => 'अनुपस्थित';
-
-  @override
-  String get summaryBank => 'बैंक';
-
-  @override
-  String get summaryInsurance => 'बीमा';
-
-  @override
-  String get termsAcceptedPrompt => 'मैं नियमों और गोपनीयता नीति से सहमत हूँ';
-
-  @override
-  String get searchHint => 'खोजें...';
-
-  @override
-  String get addOtherButton => 'अन्य जोड़ें';
-
-  @override
-  String get cancelButton => 'रद्द करें';
-
-  @override
-  String get addButton => 'जोड़ें';
-
-  @override
-  String get verifyButton => 'सत्यापित करें';
+  String get galleryLabel => 'गैलरी';
 }

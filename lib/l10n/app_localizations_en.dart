@@ -9,13 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get selectLanguageTitle => 'Select Language';
-
-  @override
   String get selectLanguagePrompt => 'Please select your preferred language';
 
   @override
-  String get continueButton => 'CONTINUE';
+  String get selectLanguageTitle => 'Select Language';
 
   @override
   String languageSelectedSnackbar(Object languageName) {
@@ -23,531 +20,487 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get phoneVer => 'Phone Verification';
+  String get btnSave => 'Save';
 
   @override
-  String get verStatement => 'Enter your mobile number to receive OTP';
+  String get btnContinue => 'Continue';
 
   @override
-  String get phoneNo => 'Phone Number';
+  String get btnSaving => 'Saving...';
 
   @override
-  String get sendbtn => 'Send OTP';
+  String get btnPosting => 'Posting...';
 
   @override
-  String get verifyBtn => 'Verify OTP';
+  String get btnPost => 'Post';
 
   @override
-  String get resendBtn => 'Resend OTP';
+  String get btnCancel => 'Cancel';
 
   @override
-  String onboardingStepLabel(
-    int currentStep,
-    int totalSteps,
-    String stepTitle,
-  ) {
-    return 'Step $currentStep/$totalSteps • $stepTitle';
+  String get btnClose => 'Close';
+
+  @override
+  String get btnView => 'View';
+
+  @override
+  String get btnViewAll => 'View All';
+
+  @override
+  String get btnRetry => 'Retry';
+
+  @override
+  String get btnRefresh => 'Refresh';
+
+  @override
+  String get lblComingSoon => 'Coming soon';
+
+  @override
+  String get lblSearch => 'Search...';
+
+  @override
+  String get lblLoading => 'Loading...';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navMarketplace => 'Marketplace';
+
+  @override
+  String get navWeather => 'Weather';
+
+  @override
+  String get navCommunity => 'Community';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get homeGreeting => 'Good Morning!';
+
+  @override
+  String get homeDefaultName => 'Farmer';
+
+  @override
+  String get homeDefaultFarm => 'Farm not set';
+
+  @override
+  String get homeQuickStatsSales => 'Total Sales';
+
+  @override
+  String get homeQuickStatsOrders => 'Active Orders';
+
+  @override
+  String get homeQuickStatsProducts => 'Products';
+
+  @override
+  String get homeQuickActionsTitle => 'Quick Actions';
+
+  @override
+  String get homeActionCrops => 'My Crops';
+
+  @override
+  String get homeActionCropsDesc => 'Track fields and crop health';
+
+  @override
+  String get homeActionFertilizer => 'Baseline Fertilizer';
+
+  @override
+  String get homeActionFertilizerDesc =>
+      'Pre-planting nutrient baseline planner';
+
+  @override
+  String get homeActionSuggestions => 'Crop Suggestions';
+
+  @override
+  String get homeActionSuggestionsDesc =>
+      'AI crop plan using backend farm data';
+
+  @override
+  String get homeActionDisease => 'Disease Detection';
+
+  @override
+  String get homeActionSchemes => 'Govt Schemes';
+
+  @override
+  String get homeRecentOrders => 'Recent Orders';
+
+  @override
+  String get homeCommunityUpdates => 'Community Updates';
+
+  @override
+  String get marketTitle => 'Marketplace';
+
+  @override
+  String get marketSubtitle => 'Buy & Sell Agricultural Products';
+
+  @override
+  String get marketSearchHint => 'Search products...';
+
+  @override
+  String get marketLabelOrganic => 'ORGANIC';
+
+  @override
+  String get marketNoDescription => 'No description added.';
+
+  @override
+  String marketLabelStock(Object quantity, Object unit) {
+    return 'Stock: $quantity $unit';
   }
 
   @override
-  String get stepTitleBasicInfo => 'Basic Info';
+  String get weightUnitKg => 'kg';
 
   @override
-  String get stepTitleLocation => 'Location';
+  String get weightUnitTon => 'ton';
 
   @override
-  String get stepTitleCrops => 'Crops';
+  String get weightUnitQuintal => 'quintal';
 
   @override
-  String get stepTitleSoilAndWater => 'Soil & Water';
+  String get weightUnitPiece => 'piece';
 
   @override
-  String get stepTitlePastYields => 'Past Yields';
+  String get weightUnitBag => 'bag';
 
   @override
-  String get stepTitleFinanceAndFinish => 'Finance & Finish';
+  String get unitLabel => 'Unit';
 
   @override
-  String get backButton => 'Back';
+  String get marketEmptyState => 'No products found';
 
   @override
-  String get nextButton => 'Next';
+  String get marketErrorLoad => 'Unable to load products.';
 
   @override
-  String get finishAndGoToDashboardButton => 'Finish & Go to Dashboard';
+  String get addProductTitle => 'Add Product';
 
   @override
-  String get languageTooltip => 'Language';
+  String get addProductLabelName => 'Name';
 
   @override
-  String get tellUsAboutYouTitle => 'Tell us about you';
+  String get addProductLabelDesc => 'Description';
 
   @override
-  String get nameLabel => 'Name (optional)';
+  String get addProductLabelPrice => 'Price';
 
   @override
-  String get nameHint => 'e.g., Ram Kumar';
+  String get addProductLabelStock => 'Stock Quantity';
 
   @override
-  String get ageRangeLabel => 'Age range *';
+  String get addProductLabelCategory => 'Category';
 
   @override
-  String get ageRangeUnder30 => 'Under 30';
+  String get addProductLabelUnit => 'Unit';
 
   @override
-  String get ageRange30to55 => '30–55';
+  String get addProductCheckboxOrganic => 'Organic product';
 
   @override
-  String get ageRangeOver55 => 'Over 55';
+  String get addProductBtnAddPhoto => 'Add Product Photo';
 
   @override
-  String get preferredLanguageLabel => 'Preferred language *';
+  String get addProductBtnChangePhoto => 'Change Product Photo';
 
   @override
-  String get selectLanguageHint => 'Select language';
+  String get addProductMsgSuccess => 'Product added successfully.';
 
   @override
-  String get languageHindi => 'Hindi';
-
-  @override
-  String get languageEnglish => 'English';
-
-  @override
-  String get languageRegional => 'Regional';
-
-  @override
-  String get farmingExperienceLabel => 'Farming experience *';
-
-  @override
-  String get selectExperienceHint => 'Select experience';
-
-  @override
-  String get experienceBeginner => 'Beginner <5 yrs';
-
-  @override
-  String get experienceIntermediate => 'Intermediate 5–15 yrs';
-
-  @override
-  String get experienceExpert => 'Expert >15 yrs';
-
-  @override
-  String get casteCategoryLabel => 'Caste/Category (optional)';
-
-  @override
-  String get selectCasteHint => 'Select';
-
-  @override
-  String get casteGeneral => 'General';
-
-  @override
-  String get casteSC => 'SC';
-
-  @override
-  String get casteST => 'ST';
-
-  @override
-  String get casteOBC => 'OBC';
-
-  @override
-  String get casteOther => 'Other';
-
-  @override
-  String get castePreferNotToSay => 'Prefer not to say';
-
-  @override
-  String get farmLocationTitle => 'Farm Location & General Details';
-
-  @override
-  String get useMyLocationButton => 'Use my location';
-
-  @override
-  String mapPreviewPlaceholder(String lat, String lon) {
-    return 'Map preview here ($lat, $lon)';
+  String addProductMsgError(Object error) {
+    return 'Unable to add product: $error';
   }
 
   @override
-  String get tehsilLabel => 'Tehsil';
+  String get addProductMsgRequired => 'Name, price and stock are required.';
 
   @override
-  String get villageTownHint => 'Type village/town';
+  String get catAll => 'All';
 
   @override
-  String get districtLabel => 'District';
+  String get catFertilizers => 'Fertilizers';
+
+  @override
+  String get catSeeds => 'Seeds';
+
+  @override
+  String get catPesticides => 'Pesticides';
+
+  @override
+  String get catEquipment => 'Equipment';
+
+  @override
+  String get catOrganic => 'Organic';
+
+  @override
+  String get commTitle => 'Community';
+
+  @override
+  String get commSubtitle => 'Connect with Fellow Farmers';
+
+  @override
+  String get commSearchHint => 'Search posts...';
+
+  @override
+  String get commEmptyState => 'No posts found';
+
+  @override
+  String get commErrorLoad => 'Unable to load posts.';
+
+  @override
+  String get commBtnCreate => 'Create New Post';
+
+  @override
+  String get commDialogTitle => 'Create New Post';
+
+  @override
+  String get commLabelTitle => 'Title';
+
+  @override
+  String get commLabelContent => 'Content';
+
+  @override
+  String get commLabelTags => 'Tags (comma separated)';
+
+  @override
+  String get commBtnAddPhoto => 'Add Post Photo';
+
+  @override
+  String get commBtnChangePhoto => 'Change Post Photo';
+
+  @override
+  String get commMsgSuccess => 'Post created successfully.';
+
+  @override
+  String get commMsgRequired => 'Title and content are required.';
+
+  @override
+  String get commCommentsTitle => 'Comments';
+
+  @override
+  String get commCommentsHint => 'Write a comment...';
+
+  @override
+  String get commCommentsEmpty => 'No comments yet';
+
+  @override
+  String get commCommentsError => 'Unable to load comments.';
+
+  @override
+  String commPostError(Object error) {
+    return 'Unable to create post: $error';
+  }
+
+  @override
+  String get catFarmingTips => 'Farming Tips';
+
+  @override
+  String get catMarketUpdates => 'Market Updates';
+
+  @override
+  String get catWeatherAlerts => 'Weather Alerts';
+
+  @override
+  String get catSuccessStories => 'Success Stories';
+
+  @override
+  String get catQA => 'Questions & Answers';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileEditHint => 'You can edit these anytime from your profile.';
+
+  @override
+  String get profileTabPersonal => 'Personal Information';
+
+  @override
+  String get profileTabAddress => 'Address';
+
+  @override
+  String get profileLabelName => 'Name';
+
+  @override
+  String get profileNameHint => 'Enter your name';
+
+  @override
+  String get profileLabelVillage => 'Village';
+
+  @override
+  String get profileLabelDistrict => 'District';
 
   @override
   String get selectDistrictHint => 'Select district';
 
   @override
-  String get stateLabel => 'State';
+  String get profileLabelState => 'State';
 
   @override
-  String get selectStateHint => 'Select state';
+  String get stateHint => 'Select state';
 
   @override
-  String get totalFarmAreaLabel => 'Total farm area *';
+  String get labelTehsil => 'Tehsil';
+
+  @override
+  String get villageTownHint => 'Type village/town';
+
+  @override
+  String get totalFarmAreaLabel => 'Total farm area';
+
+  @override
+  String get areaLabel => 'Area';
 
   @override
   String get farmAreaHint => 'e.g., 2.5';
 
   @override
-  String get areaUnitAcre => 'acre';
+  String get farmEmptyState => 'No crops found.';
 
   @override
-  String get areaUnitHectare => 'hectare';
+  String get cropStatisticsTitle => 'Crop Statistics';
 
   @override
-  String get waterSourceLabel => 'Water source (multi-select)';
+  String get totalcropsLabel => 'Total crops';
 
   @override
-  String get waterSourceRiver => 'River';
+  String get avgYieldLabel => 'Average yield';
 
   @override
-  String get waterSourceWell => 'Well';
+  String get activeCropsLabel => 'Active crops';
 
   @override
-  String get waterSourceCanal => 'Canal';
+  String get readyForHarvestLabel => 'Ready for harvest';
 
   @override
-  String get waterSourceRainfed => 'Rainfed';
+  String get addCropTitle => 'Add Crop';
 
   @override
-  String get waterSourceBorewell => 'Borewell';
+  String get cropTypeLabel => 'Crop Type';
 
   @override
-  String get farmerGroupMembershipLabel => 'Farmer group / Co-op membership';
+  String get cropTypeHint => 'Select crop type';
 
   @override
-  String get yes => 'Yes';
+  String get sownAreaLabel => 'Sown Area (acres)';
 
   @override
-  String get no => 'No';
+  String get sownAreaHint => 'e.g., 1.5';
 
   @override
-  String get groupNameHint => 'Name of group';
+  String get sownAreaHintError => 'Please enter a valid area';
 
   @override
-  String get cropsAndPracticesTitle => 'Crops & Practices';
+  String get plantedDateLabel => 'Planted Date';
 
   @override
-  String get primaryCropsLabel => 'Primary crops (multi-select)';
+  String get cropLabelHint => 'e.g., Wheat - July Field';
 
   @override
-  String get cropWheat => 'Wheat';
+  String get cropLabelHintError => 'Please enter a crop label';
 
   @override
-  String get cropMoong => 'Moong';
+  String get cropSaveError => 'Unable to save crop to server';
 
   @override
-  String get cropIsabgol => 'Isabogl';
-
-  @override
-  String get cropMustard => 'Mustard';
-
-  @override
-  String get cropGroundnut => 'Groundnut';
-
-  @override
-  String get cropCotton => 'Cotton';
-
-  @override
-  String get currentFieldStatusLabel => 'Current Status of Field';
-
-  @override
-  String get selectStatusHint => 'Select';
-
-  @override
-  String get fieldStatusPreparing => 'Preparing';
-
-  @override
-  String get fieldStatusSowing => 'Sowing';
-
-  @override
-  String get fieldStatusGrowing => 'Growing';
-
-  @override
-  String get fieldStatusHarvesting => 'Harvesting';
-
-  @override
-  String get expectedAcreageLabel => 'Expected acreage for this crop';
-
-  @override
-  String get expectedAcreageHint => 'e.g., 1.5';
-
-  @override
-  String get previousCropLabel => 'Previous crop (last season)';
-
-  @override
-  String get selectPreviousCropHint => 'Select';
-
-  @override
-  String get previousCropFallow => 'Fallow';
-
-  @override
-  String get previousCropPulses => 'Pulses';
-
-  @override
-  String get previousCropMaize => 'Maize';
-
-  @override
-  String get previousCropRice => 'Rice';
-
-  @override
-  String get previousCropOilseeds => 'Oilseeds';
-
-  @override
-  String get previousCropVegetables => 'Vegetables';
-
-  @override
-  String get previousCropOther => 'Other';
-
-  @override
-  String get soilAndWaterReportsTitle => 'Soil & Water Reports';
-
-  @override
-  String get soilTestReportLabel => 'Soil test report (optional)';
-
-  @override
-  String get uploadPhotoPdfButton => 'Upload Photo / PDF';
-
-  @override
-  String get enterManuallyButton => 'Enter Manually';
-
-  @override
-  String get nValueLabel => 'N (ppm)';
-
-  @override
-  String get nValueHint => 'e.g., 120';
-
-  @override
-  String get pValueLabel => 'P (ppm)';
-
-  @override
-  String get pValueHint => 'e.g., 18';
-
-  @override
-  String get kValueLabel => 'K (ppm)';
-
-  @override
-  String get kValueHint => 'e.g., 200';
-
-  @override
-  String get phLabel => 'pH (1–14)';
-
-  @override
-  String get phHint => 'e.g., 6.8';
-
-  @override
-  String get organicMatterLabel => 'Organic matter %';
-
-  @override
-  String get organicMatterHint => 'e.g., 1.5';
-
-  @override
-  String get lastSoilTestDateLabel => 'Last soil test date';
-
-  @override
-  String get lastSoilTestDateHint => 'YYYY-MM-DD';
-
-  @override
-  String get waterQualityLabel => 'Water quality';
-
-  @override
-  String get salinityHint => 'Salinity';
-
-  @override
-  String get salinityLow => 'Low';
-
-  @override
-  String get salinityMedium => 'Medium';
-
-  @override
-  String get salinityHigh => 'High';
-
-  @override
-  String get waterPhHint => 'Water pH';
-
-  @override
-  String get bookSoilTestPrompt => 'Book for soil test?';
-
-  @override
-  String get historicalDataTitle => 'Historical Data & Past Yields';
-
-  @override
-  String lastSeasonYieldLabel(String cropName) {
-    return 'Last season yield — $cropName';
+  String addCropSuccessful(Object cropName) {
+    return '$cropName added successfully.';
   }
 
   @override
-  String get yieldValueHint => 'Value';
+  String get profileLabelEmail => 'Email';
 
   @override
-  String get yieldUnitHint => 'Unit';
+  String get profileLabelLanguage => 'Language';
 
   @override
-  String get yieldUnitKgPerAcre => 'kg/acre';
+  String get profileNotProvided => 'Not provided';
 
   @override
-  String get yieldUnitQuintalPerAcre => 'quintal/acre';
+  String get profileErrorLoad => 'Unable to load profile';
 
   @override
-  String get planningForThisYearLabel =>
-      'What are you planning to grow this year on that place?';
+  String get settingsEditProfile => 'Edit Profile';
 
   @override
-  String get plannedCropHint => 'Select crop';
+  String get settingsChangePass => 'Change Password';
 
   @override
-  String get plannedCropNothing => 'Nothing';
+  String get settingsChangePassDesc => 'Set a new account password';
 
   @override
-  String get previousInputsLabel => 'Previous inputs (optional)';
+  String get settingsForgotPass => 'Forgot Password';
 
   @override
-  String get inputUrea => 'Urea';
+  String get settingsForgotPassDesc => 'Send reset link to email';
 
   @override
-  String get inputDAP => 'DAP';
+  String get settingsLogout => 'Logout';
 
   @override
-  String get inputNPKBlends => 'NPK blends';
+  String get settingsLogoutDesc => 'Sign out from this device';
 
   @override
-  String get inputImidacloprid => 'Imidacloprid';
+  String get settingsDelete => 'Delete Account (Coming soon)';
 
   @override
-  String get inputMancozeb => 'Mancozeb';
+  String get formCurrentPass => 'Current Password';
 
   @override
-  String get inputOther => 'Other';
+  String get formNewPass => 'New Password';
 
   @override
-  String get historicalWeatherImpactsLabel =>
-      'Historical weather impacts (optional)';
+  String get formConfirmPass => 'Confirm Password';
 
   @override
-  String get impactDrought => 'Drought';
+  String get formBtnUpdatePass => 'Update Password';
 
   @override
-  String get impactFlood => 'Flood';
+  String get formMsgPassSuccess => 'Password updated successfully';
 
   @override
-  String get impactHeatwave => 'Heatwave';
+  String get formMsgPassResetSent => 'Password reset link sent to your email';
 
   @override
-  String get impactPestOutbreak => 'Pest outbreak';
+  String get formErrorPassMatch =>
+      'New password and confirm password do not match';
 
   @override
-  String get impactNone => 'None';
+  String get formErrorPassLength => 'Minimum 6 characters required';
 
   @override
-  String get uploadPastFarmPhotosLabel =>
-      'Upload past farm photos or diary scans (optional)';
+  String get imgPickCamera => 'Take photo';
 
   @override
-  String get selectFromGalleryButton => 'Select from gallery';
+  String get imgPickGallery => 'Choose from gallery';
 
   @override
-  String get usedGovSchemesLabel => 'Government schemes last season?';
+  String get imgPreviewUnavailable => 'Preview unavailable';
 
   @override
-  String get whichSchemesHint => 'Which schemes?';
+  String get languageTooltip => 'Select Language';
 
   @override
-  String get financeAndFinishTitle => 'Finance & Finish';
+  String get languageEnglish => 'English';
 
   @override
-  String get bankAccountLinkedLabel => 'Bank account linked?';
+  String get languageHindi => 'Hindi';
 
   @override
-  String get bankNameHint => 'Bank name (optional)';
+  String get profilePhone => 'Phone';
 
   @override
-  String get cropInsuranceEnrolledLabel => 'Crop insurance enrolled?';
+  String get diseaseDetectTitle => 'Disease Detection';
 
   @override
-  String get insuranceProviderHint => 'Provider (optional)';
+  String get diseaseIntruction => 'Capture or upload crop image';
 
   @override
-  String get annualFarmIncomeLabel => 'Annual farm income range';
+  String get diseaseHint => 'Use clear daylight photos for better accuracy';
 
   @override
-  String get selectIncomeHint => 'Select';
+  String get cameraLabel => 'Camera';
 
   @override
-  String get incomeLow => 'Low <₹1L';
-
-  @override
-  String get incomeMedium => 'Medium ₹1–5L';
-
-  @override
-  String get incomeHigh => 'High >₹5L';
-
-  @override
-  String get preferredPaymentMethodLabel => 'Preferred payment method';
-
-  @override
-  String get selectPaymentMethodHint => 'Select';
-
-  @override
-  String get paymentUPI => 'UPI';
-
-  @override
-  String get paymentCOD => 'COD';
-
-  @override
-  String get paymentWallet => 'Wallet';
-
-  @override
-  String get consentAnalyticsPrompt =>
-      'Receive AI suggestions & upload anonymized data to improve recommendations.';
-
-  @override
-  String get summaryTitle => 'Summary';
-
-  @override
-  String get summaryFields => 'Fields';
-
-  @override
-  String summaryAcreage(String cropName) {
-    return '$cropName acreage';
-  }
-
-  @override
-  String get summaryPrimaryCrops => 'Primary crops';
-
-  @override
-  String get summaryTotalArea => 'Total area';
-
-  @override
-  String get summarySoilTest => 'Soil test';
-
-  @override
-  String get summarySoilTestPresent => 'Present';
-
-  @override
-  String get summarySoilTestAbsent => 'Absent';
-
-  @override
-  String get summaryBank => 'Bank';
-
-  @override
-  String get summaryInsurance => 'Insurance';
-
-  @override
-  String get termsAcceptedPrompt => 'I agree to terms & privacy';
-
-  @override
-  String get searchHint => 'Search...';
-
-  @override
-  String get addOtherButton => 'Add Other';
-
-  @override
-  String get cancelButton => 'Cancel';
-
-  @override
-  String get addButton => 'Add';
-
-  @override
-  String get verifyButton => 'Verify';
+  String get galleryLabel => 'Gallery';
 }

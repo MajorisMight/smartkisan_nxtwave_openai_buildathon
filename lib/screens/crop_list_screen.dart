@@ -7,6 +7,7 @@ import '../models/crop.dart';
 import '../providers/crop_provider.dart';
 import '../services/session_service.dart';
 import 'crops_screen.dart';
+import '../app_extensions.dart';
 
 class CropListScreen extends ConsumerStatefulWidget {
   const CropListScreen({super.key});
@@ -80,9 +81,9 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+           Expanded(
             child: Text(
-              'My Crops',
+              context.l10n.homeActionCrops,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
@@ -114,7 +115,7 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
       child: TextField(
         controller: searchController,
         decoration: InputDecoration(
-          hintText: 'Search crops...',
+          hintText: context.l10n.lblSearch,
           hintStyle: TextStyle(color: AppColors.textHint, fontSize: 16),
           prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
           suffixIcon:
@@ -205,7 +206,7 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
 
               const SizedBox(height: 10),
               Text(
-                'Area: ${crop.areaAcres?.toStringAsFixed(1) ?? 'N/A'} acres',
+                '${context.l10n.areaLabel} ${crop.areaAcres?.toStringAsFixed(1) ?? 'N/A'} acres',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -233,8 +234,8 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'No crops found',
+           Text(
+            context.l10n.farmEmptyState,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -256,7 +257,7 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
           ElevatedButton.icon(
             onPressed: _showAddCropDialog,
             icon: const Icon(Icons.add),
-            label: const Text('Add Crop'),
+            label:  Text(context.l10n.addCropTitle),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: AppColors.white,
@@ -278,13 +279,6 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
     return 'Sown $daysSince $dayLabel ago • ${_formatDate(sowDate)}';
   }
 
-  String _getCropCode(Crop crop) {
-    final base =
-        '${crop.id}-${crop.name}-${crop.sowDate.millisecondsSinceEpoch}';
-    final hash = base.hashCode & 0x7fffffff;
-    final code = (hash % 900000) + 100000;
-    return code.toString();
-  }
 
   void _navigateToCropDetail(Crop crop) {
     Navigator.push(
@@ -305,7 +299,7 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${newCrop.name} added successfully!'),
+        content: Text(context.l10n.addCropSuccessful(newCrop.name)),
         backgroundColor: AppColors.success,
       ),
     );
@@ -317,21 +311,21 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Crop Statistics'),
+            title:  Text(context.l10n.cropStatisticsTitle),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildStatItem('Total Crops', crops.length.toString()),
+                _buildStatItem(context.l10n.totalcropsLabel, crops.length.toString()),
                 _buildStatItem(
-                  'Total Area',
+                  context.l10n.totalFarmAreaLabel,
                   '${crops.fold(0.0, (sum, crop) => sum + (crop.areaAcres ?? 0)).toStringAsFixed(1)} acres',
                 ),
                 _buildStatItem(
-                  'Active Crops',
+                  context.l10n.activeCropsLabel,
                   crops.where((c) => c.stage != 'harvest').length.toString(),
                 ),
                 _buildStatItem(
-                  'Ready for Harvest',
+                  context.l10n.readyForHarvestLabel,
                   crops.where((c) => c.stage == 'harvest').length.toString(),
                 ),
               ],
@@ -339,7 +333,7 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+                child: Text(context.l10n.btnClose),
               ),
             ],
           ),
@@ -462,8 +456,8 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                   ),
                   TextField(
                     controller: searchController,
-                    decoration: const InputDecoration(
-                      labelText: 'Search crop type',
+                    decoration:  InputDecoration(
+                      labelText: context.l10n.lblSearch,
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: updateFilter,
@@ -522,7 +516,7 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to save crop to server.')),
+         SnackBar(content: Text(context.l10n.cropSaveError)),
       );
       return;
     }
@@ -555,7 +549,7 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Add Crop'),
+        title:  Text(context.l10n.addCropTitle),
         backgroundColor: AppColors.backgroundLight,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -573,14 +567,15 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _labelController,
-                        decoration: const InputDecoration(
-                          labelText: 'Crop Label',
-                          hintText: 'e.g., Wheat - July Field',
+                        decoration:  InputDecoration(
+                          labelText: context.l10n.lblSearch,
+                          hintText: context.l10n.cropLabelHint,
                         ),
                         textInputAction: TextInputAction.next,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a crop label';
+                            return context.l10n.cropLabelHintError;
+
                           }
                           return null;
                         },
@@ -589,15 +584,15 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                       TextFormField(
                         controller: _typeController,
                         readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Crop Type',
-                          hintText: 'Select crop type',
+                        decoration:  InputDecoration(
+                          labelText: context.l10n.cropTypeLabel,
+                          hintText: context.l10n.cropTypeHint,
                           suffixIcon: Icon(Icons.arrow_drop_down),
                         ),
                         onTap: _pickCropType,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please select a crop type';
+                            return context.l10n.cropTypeHint;
                           }
                           return null;
                         },
@@ -611,16 +606,16 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                               keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true,
                               ),
-                              decoration: const InputDecoration(
-                                labelText: 'Sown Area',
-                                hintText: 'e.g., 2.5',
+                              decoration:  InputDecoration(
+                                labelText: context.l10n.sownAreaLabel,
+                                hintText: context.l10n.sownAreaHint,
                                 prefixIcon: Icon(Icons.square_foot),
                               ),
                               validator: (value) {
                                 final text = value?.trim() ?? '';
                                 final number = double.tryParse(text);
                                 if (number == null || number <= 0) {
-                                  return 'Enter valid area';
+                                  return context.l10n.sownAreaHintError;
                                 }
                                 return null;
                               },
@@ -632,8 +627,8 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedAreaUnit,
                               isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Unit',
+                              decoration:  InputDecoration(
+                                labelText: context.l10n.unitLabel,
                               ),
                               items:
                                   _areaUnits
@@ -655,7 +650,7 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                       const SizedBox(height: 20),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Planted Date'),
+                        title:  Text(context.l10n.plantedDateLabel),
                         subtitle: Text(_formatDate(_selectedDate)),
                         trailing: const Icon(Icons.calendar_today),
                         onTap: _pickDate,
@@ -683,7 +678,7 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
                               color: AppColors.white,
                             ),
                           )
-                          : const Text('Add Crop'),
+                          : Text(context.l10n.addCropTitle),
                 ),
               ),
             ],

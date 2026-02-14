@@ -31,9 +31,10 @@ class GptService {
     final mimeType = _mimeTypeForPath(imageFile.path);
 
     final content = await _chatCompletion(
-      model: dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
-          ? dotenv.env['GPT_MODEL_VISION']!.trim()
-          : 'gpt-4.1-mini',
+      model:
+          dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_VISION']!.trim()
+              : 'gpt-4.1-mini',
       messages: [
         {
           'role': 'user',
@@ -51,6 +52,23 @@ class GptService {
     return _safeJson(content);
   }
 
+  static Future<Map<String, dynamic>> weatherAdvisories({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    final content = await _chatCompletion(
+      model:
+          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
+              : 'gpt-4.1-mini',
+      messages: [
+        {'role': 'user', 'content': _buildWeatherAdvisoryPrompt(contextData)},
+      ],
+      temperature: 0.1,
+    );
+    return _safeJson(content);
+  }
+
   static Future<Map<String, dynamic>> extractSoilTestFromImage({
     required File imageFile,
   }) async {
@@ -60,9 +78,10 @@ class GptService {
     final mimeType = _mimeTypeForPath(imageFile.path);
 
     final content = await _chatCompletion(
-      model: dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
-          ? dotenv.env['GPT_MODEL_VISION']!.trim()
-          : 'gpt-4.1-mini',
+      model:
+          dotenv.env['GPT_MODEL_VISION']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_VISION']!.trim()
+              : 'gpt-4.1-mini',
       messages: [
         {
           'role': 'user',
@@ -85,11 +104,29 @@ class GptService {
   }) async {
     await ensureInitialized();
     final content = await _chatCompletion(
-      model: dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-          ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-          : 'gpt-4.1-mini',
+      model:
+          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
+              : 'gpt-4.1-mini',
       messages: [
         {'role': 'user', 'content': _buildFertilizerPrompt(contextData)},
+      ],
+      temperature: 0.1,
+    );
+    return _safeJson(content);
+  }
+
+  static Future<Map<String, dynamic>> cropSuggestions({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    final content = await _chatCompletion(
+      model:
+          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
+              : 'gpt-4.1-mini',
+      messages: [
+        {'role': 'user', 'content': _buildCropSuggestionPrompt(contextData)},
       ],
       temperature: 0.1,
     );
@@ -103,9 +140,10 @@ class GptService {
     final prompt = _buildSchemesPrompt(profile);
     print('[GptService] Schemes prompt: $prompt');
     final content = await _chatCompletion(
-      model: dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
-          ? dotenv.env['GPT_MODEL_TEXT']!.trim()
-          : 'gpt-4.1-mini',
+      model:
+          dotenv.env['GPT_MODEL_TEXT']?.trim().isNotEmpty == true
+              ? dotenv.env['GPT_MODEL_TEXT']!.trim()
+              : 'gpt-4.1-mini',
       messages: [
         {'role': 'user', 'content': prompt},
       ],
@@ -146,11 +184,12 @@ class GptService {
 
     final decoded = _safeJsonDynamic(res.body);
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      final message = decoded is Map<String, dynamic>
-          ? (decoded['error']?['message']?.toString() ??
-              decoded['message']?.toString() ??
-              'Unknown error')
-          : 'Unknown error';
+      final message =
+          decoded is Map<String, dynamic>
+              ? (decoded['error']?['message']?.toString() ??
+                  decoded['message']?.toString() ??
+                  'Unknown error')
+              : 'Unknown error';
       throw Exception('OpenAI API error ${res.statusCode}: $message');
     }
 
@@ -231,6 +270,72 @@ Return strict JSON ARRAY of objects:
 {"title": string, "category": "subsidy"|"insurance"|"loan"|"training", "state": string, "description": string, "eligibilityTags": [string], "steps": [string]}
 Profile:
 $profile
+''';
+  }
+
+  static String _buildWeatherAdvisoryPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are a weather + farm operations advisor.
+Use the provided weather forecast and return ONLY valid JSON.
+
+JSON schema (strict):
+{
+  "summary": string,
+  "advisories": [
+    {
+      "headline": string,
+      "advice": string,
+      "reason": string,
+      "priority": "low" | "medium" | "high",
+      "category": "weather" | "irrigation" | "planting" | "spraying" | "pest" | "harvest",
+      "time_horizon": "today" | "1-3d" | "4-7d" | "8-16d"
+    }
+  ]
+}
+
+Rules:
+- Give 3 to 6 advisories.
+- Keep each "advice" concise and action-oriented.
+- Prioritize practical field decisions (irrigation, sowing, spraying, harvest timing).
+- No markdown, no explanation outside JSON.
+
+Context JSON:
+$ctx
+''';
+  }
+
+  static String _buildCropSuggestionPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are an agronomy planner for Indian farms.
+Return ONLY valid JSON in this exact schema:
+{
+  "generated_at": "ISO-8601 string",
+  "overall_summary": "string",
+  "suggestions": [
+    {
+      "rank": number,
+      "crop_name": "string",
+      "growth_duration_days": number,
+      "irrigation_requirements": "string",
+      "estimated_yield": number,
+      "estimated_yield_unit": "string",
+      "estimated_cost": number,
+      "estimated_revenue": number,
+      "currency": "INR",
+      "overall_summary": "string",
+      "confidence": "High|Medium|Low"
+    }
+  ]
+}
+Rules:
+- Provide at least 4 suggestions.
+- Rank by highest estimated_revenue first; if tie, higher estimated_yield first.
+- Use land area and location context for numbers.
+- If marketplace data is unavailable, use regional averages and mark confidence accordingly.
+- Keep output concise and actionable.
+
+INPUT_CONTEXT:
+$ctx
 ''';
   }
 

@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:kisan/Widgets/Widgets/scaffoldWithNavBar.dart';
+import 'package:kisan/Widgets/scaffoldWithNavBar.dart';
 import 'package:kisan/l10n/app_localizations.dart';
 import 'package:kisan/providers/auth_provider.dart';
 import 'package:kisan/providers/auth_repository.dart';
@@ -11,6 +11,7 @@ import 'package:kisan/providers/profile_provider.dart';
 // import 'package:kisan/screens/ai_insights_screen.dart';
 import 'package:kisan/screens/confirm_email_screen.dart';
 import 'package:kisan/screens/crop_list_screen.dart';
+import 'package:kisan/screens/crop_suggestion_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
@@ -91,6 +92,7 @@ class _FarmerEcosystemAppState extends ConsumerState<FarmerEcosystemApp> {
   @override
   void initState() {
     super.initState();
+    _loadSavedLocale();
     final authRepository = ref.read(authRepositoryProvider);
     _router = GoRouter(
       initialLocation: '/',
@@ -206,12 +208,26 @@ class _FarmerEcosystemAppState extends ConsumerState<FarmerEcosystemApp> {
         ),
         GoRoute(path: '/crops', builder: (context, state) => CropListScreen()),
         GoRoute(
+          path: '/crop-suggestions',
+          builder: (context, state) => const CropSuggestionScreen(),
+        ),
+        GoRoute(
           path: '/disease-detect',
           builder: (context, state) => const DiseaseDetectScreen(),
         ),
       ],
     );
   }
+
+  Future<void> _loadSavedLocale() async {
+    final savedCode = await SessionService.getLanguagePreference();
+    if (!mounted || savedCode == null || savedCode.trim().isEmpty) return;
+    if (savedCode != 'en' && savedCode != 'hi') return;
+    setState(() {
+      _locale = Locale(savedCode);
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,209 +1,150 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../constants/app_colors.dart';
+import '../models/onboarding_profile.dart';
 import '../models/weather.dart';
 import '../providers/profile_provider.dart';
-import '../services/weather_advisor_cache_service.dart';
-import '../services/weather_advisor_service .dart';
+import '../services/weather_advisor_service.dart';
 import '../services/weather_service.dart';
 
-class WeatherScreen extends ConsumerStatefulWidget {
+class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
 
   @override
-  ConsumerState<WeatherScreen> createState() => _WeatherScreenState();
+  State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
-class _WeatherScreenState extends ConsumerState<WeatherScreen> {
+class _WeatherScreenState extends State<WeatherScreen> {
   final TextEditingController _locationController = TextEditingController();
-
   String _activeQueryLocation = '';
-  bool _weatherLoading = false;
-  bool _aiLoading = false;
+
+  int _selectedIndex = 2;
+  bool _loading = false;
   WeatherData? _weatherData;
   List<WeatherAdvisory> _llmAdvisories = [];
   String _llmSummary = '';
-  DateTime? _llmCachedAt;
   String? _llmError;
   String? _error;
 
   @override
-  void initState() {
-    super.initState();
-    _locationController.addListener(_onLocationChanged);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final profile = Provider.of<ProfileProvider>(context).profile;
+    final location = _resolveLocation(profile);
+    if (_activeQueryLocation != location) {
+      _activeQueryLocation = location;
+      _locationController.text = location;
+      if (location.isEmpty) {
+        setState(() {
+          _loading = false;
+          _weatherData = null;
+          _error = null;
+          _llmError = null;
+          _llmSummary = '';
+          _llmAdvisories = const [];
+        });
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadWeather(location: location);
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _locationController.removeListener(_onLocationChanged);
     _locationController.dispose();
     super.dispose();
   }
 
-  void _onLocationChanged() {
-    // Intentionally left empty; controller is source-of-truth for typed location.
-  }
-
   Future<void> _loadWeather({String? location}) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     final query = (location ?? _locationController.text).trim();
     if (query.isEmpty) {
+      debugPrint('[WeatherScreen] empty query, not loading weather');
       setState(() {
-        _weatherLoading = false;
-        _aiLoading = false;
+        _loading = false;
         _error = null;
         _weatherData = null;
         _llmSummary = '';
-        _llmCachedAt = null;
         _llmAdvisories = const [];
         _llmError = null;
       });
       return;
     }
 
-    setState(() {
-      _weatherLoading = true;
-      _error = null;
-      if (_activeQueryLocation != query) {
-        _llmSummary = '';
-        _llmAdvisories = const [];
-        _llmCachedAt = null;
-        _llmError = null;
-      }
-    });
-
+    debugPrint('[WeatherScreen] _loadWeather start query="$query"');
     try {
       final weather = await WeatherService.getCurrentWeather(query);
+      debugPrint('[WeatherScreen] current weather loaded location="${weather.location}"');
+      WeatherAdvisoryResponse? advisoryResponse;
+      String? llmError;
+      try {
+        advisoryResponse = await WeatherAdvisorService.getAdvisories(
+          location: query,
+          weather: weather,
+        );
+        debugPrint(
+          '[WeatherScreen] LLM advisories loaded count=${advisoryResponse.advisories.length}',
+        );
+      } catch (e) {
+        debugPrint('[WeatherScreen] LLM advisory error: $e');
+        llmError = e.toString().replaceFirst('Exception: ', '');
+      }
       if (!mounted) return;
-
       setState(() {
-        _activeQueryLocation = query;
-        _locationController.text = query;
         _weatherData = weather;
-        _weatherLoading = false;
+        _llmSummary = advisoryResponse?.summary ?? '';
+        _llmAdvisories = advisoryResponse?.advisories ?? const [];
+        _llmError = llmError;
+        _loading = false;
       });
-
-      await _loadAiNotes(query: query, weather: weather);
+      debugPrint('[WeatherScreen] _loadWeather completed query="$query"');
     } catch (e) {
+      debugPrint('[WeatherScreen] weather pipeline error query="$query": $e');
       if (!mounted) return;
       setState(() {
-        _weatherLoading = false;
+        _loading = false;
         _error = e.toString().replaceFirst('Exception: ', '');
       });
     }
   }
 
-  Future<void> _loadAiNotes({
-    required String query,
-    required WeatherData weather,
-    bool forceRefresh = false,
-  }) async {
-    setState(() {
-      _aiLoading = true;
-      if (forceRefresh) {
-        _llmError = null;
-      }
-    });
-
-    if (!forceRefresh) {
-      final cached = await WeatherAdvisorCacheService.readValid(location: query);
-      if (cached != null) {
-        if (!mounted) return;
-        setState(() {
-          _llmSummary = cached.summary;
-          _llmAdvisories = cached.advisories;
-          _llmCachedAt = cached.cachedAt;
-          _llmError = null;
-          _aiLoading = false;
-        });
-        return;
-      }
-    }
-
-    try {
-      final advisoryResponse = await WeatherAdvisorService.getAdvisories(
-        location: query,
-        weather: weather,
-      );
-
-      await WeatherAdvisorCacheService.write(
-        location: query,
-        summary: advisoryResponse.summary,
-        advisories: advisoryResponse.advisories,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _llmSummary = advisoryResponse.summary;
-        _llmAdvisories = advisoryResponse.advisories;
-        _llmCachedAt = DateTime.now();
-        _llmError = null;
-        _aiLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _llmError = e.toString().replaceFirst('Exception: ', '');
-        _aiLoading = false;
-      });
-    }
-  }
-
-  Future<void> _refreshAiNotes() async {
-    final weather = _weatherData;
-    if (weather == null) {
-      await _loadWeather();
-      return;
-    }
-    final query = _activeQueryLocation.isEmpty
-        ? _locationController.text.trim()
-        : _activeQueryLocation;
-    if (query.isEmpty) return;
-    await _loadAiNotes(query: query, weather: weather, forceRefresh: true);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(farmerBasicProfileProvider);
-    final initialLocation = profileAsync.valueOrNull?.village.trim() ?? '';
-
-    if (_activeQueryLocation.isEmpty &&
-        _locationController.text.isEmpty &&
-        initialLocation.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _locationController.text = initialLocation;
-        _loadWeather(location: initialLocation);
-      });
-    }
-
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => _loadWeather(),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-            children: [
-              _buildHeader(),
-              SizedBox(height: 14.h),
-              _buildLocationInput(),
-              SizedBox(height: 16.h),
-              if (_error != null)
-                _buildErrorCard(_error!)
-              else if (_weatherLoading && _weatherData == null)
-                const Center(child: CircularProgressIndicator())
-              else
-                ..._buildWeatherContent(),
-            ],
-          ),
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+        child: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: () => _loadWeather(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+                    children: [
+                      _buildHeader(),
+                      SizedBox(height: 14.h),
+                      _buildLocationInput(),
+                      SizedBox(height: 16.h),
+                      if (_error != null) _buildErrorCard() else ..._buildWeatherContent(),
+                    ],
+                  ),
+                ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -220,12 +161,16 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
           ),
         ),
         IconButton(
-          onPressed: _weatherLoading ? null : () => _loadWeather(),
+          onPressed: () => _loadWeather(),
           icon: const Icon(Icons.refresh_rounded),
           color: AppColors.primaryGreen,
         ),
       ],
     );
+  }
+
+  String _resolveLocation(FarmerProfile? profile) {
+    return (profile?.village ?? '').trim();
   }
 
   Widget _buildLocationInput() {
@@ -238,16 +183,10 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
             onSubmitted: (value) => _loadWeather(location: value),
             decoration: InputDecoration(
               hintText: 'Enter city',
-              hintStyle: GoogleFonts.poppins(
-                color: AppColors.textSecondary,
-                fontSize: 13.sp,
-              ),
+              hintStyle: GoogleFonts.poppins(color: AppColors.textSecondary, fontSize: 13.sp),
               filled: true,
               fillColor: AppColors.white,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 12.h,
-              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: const BorderSide(color: AppColors.borderLight),
@@ -263,19 +202,14 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
         SizedBox(
           height: 46.h,
           child: ElevatedButton(
-            onPressed: _weatherLoading ? null : () => _loadWeather(),
+            onPressed: () => _loadWeather(),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
             child: Text(
               'Load',
-              style: GoogleFonts.poppins(
-                color: AppColors.white,
-                fontWeight: FontWeight.w600,
-              ),
+              style: GoogleFonts.poppins(color: AppColors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -283,7 +217,7 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
     );
   }
 
-  Widget _buildErrorCard(String error) {
+  Widget _buildErrorCard() {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -304,21 +238,15 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
           ),
           SizedBox(height: 6.h),
           Text(
-            error,
-            style: GoogleFonts.poppins(
-              fontSize: 13.sp,
-              color: AppColors.textSecondary,
-            ),
+            _error!,
+            style: GoogleFonts.poppins(fontSize: 13.sp, color: AppColors.textSecondary),
           ),
           SizedBox(height: 10.h),
           TextButton(
             onPressed: () => _loadWeather(),
             child: Text(
               'Retry',
-              style: GoogleFonts.poppins(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.w600,
-              ),
+              style: GoogleFonts.poppins(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -345,9 +273,6 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
         title: 'AI Weather Notes',
         summary: _llmSummary,
         advisories: _llmAdvisories,
-        cachedAt: _llmCachedAt,
-        loading: _aiLoading,
-        advisoryError: _llmError,
         emptyMessage: 'No AI advisories available.',
       ),
     ];
@@ -372,7 +297,7 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
                 ),
                 SizedBox(height: 6.h),
                 Text(
-                  '${weather.temperature.toStringAsFixed(1)} C',
+                  '${weather.temperature.toStringAsFixed(1)}°C',
                   style: GoogleFonts.poppins(
                     fontSize: 38.sp,
                     fontWeight: FontWeight.w700,
@@ -411,29 +336,11 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
   Widget _buildMetricsGrid(WeatherData weather) {
     return Row(
       children: [
-        Expanded(
-          child: _buildMetricTile(
-            'Humidity',
-            '${weather.humidity.toStringAsFixed(0)}%',
-            FontAwesomeIcons.droplet,
-          ),
-        ),
+        Expanded(child: _buildMetricTile('Humidity', '${weather.humidity.toStringAsFixed(0)}%', FontAwesomeIcons.droplet)),
         SizedBox(width: 8.w),
-        Expanded(
-          child: _buildMetricTile(
-            'Wind',
-            '${weather.windSpeed.toStringAsFixed(0)} km/h',
-            FontAwesomeIcons.wind,
-          ),
-        ),
+        Expanded(child: _buildMetricTile('Wind', '${weather.windSpeed.toStringAsFixed(0)} km/h', FontAwesomeIcons.wind)),
         SizedBox(width: 8.w),
-        Expanded(
-          child: _buildMetricTile(
-            'Pressure',
-            '${weather.pressure.toStringAsFixed(0)} hPa',
-            FontAwesomeIcons.gauge,
-          ),
-        ),
+        Expanded(child: _buildMetricTile('Pressure', '${weather.pressure.toStringAsFixed(0)} hPa', FontAwesomeIcons.gauge)),
       ],
     );
   }
@@ -493,29 +400,19 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
                     width: 92.w,
                     child: Text(
                       DateFormat('EEE, d MMM').format(item.date),
-                      style: GoogleFonts.poppins(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.textSecondary),
                     ),
                   ),
-                  Icon(
-                    _getWeatherIcon(item.condition),
-                    size: 14.sp,
-                    color: AppColors.primaryGreen,
-                  ),
+                  Icon(_getWeatherIcon(item.condition), size: 14.sp, color: AppColors.primaryGreen),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
                       item.condition,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12.sp,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: AppColors.textPrimary),
                     ),
                   ),
                   Text(
-                    '${item.maxTemp.toStringAsFixed(0)} C/${item.minTemp.toStringAsFixed(0)} C',
+                    '${item.maxTemp.toStringAsFixed(0)}°/${item.minTemp.toStringAsFixed(0)}°',
                     style: GoogleFonts.poppins(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
@@ -535,15 +432,8 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
     required String title,
     required String summary,
     required List<WeatherAdvisory> advisories,
-    required DateTime? cachedAt,
-    required bool loading,
-    required String? advisoryError,
     required String emptyMessage,
   }) {
-    final freshnessText = cachedAt == null
-        ? 'Not generated yet'
-        : 'Last updated ${DateFormat('d MMM, h:mm a').format(cachedAt)}';
-
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: _cardDecoration().copyWith(
@@ -552,36 +442,12 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryGreenDark,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Refresh AI notes',
-                onPressed: loading ? null : _refreshAiNotes,
-                icon: loading
-                    ? SizedBox(
-                        height: 18.sp,
-                        width: 18.sp,
-                        child: const CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.sync_rounded),
-                color: AppColors.primaryGreen,
-              ),
-            ],
-          ),
           Text(
-            freshnessText,
+            title,
             style: GoogleFonts.poppins(
-              fontSize: 11.sp,
-              color: AppColors.textSecondary,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryGreenDark,
             ),
           ),
           if (summary.isNotEmpty) ...[
@@ -595,19 +461,9 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
             ),
           ],
           SizedBox(height: 8.h),
-          if (advisories.isEmpty && loading)
+          if (advisories.isEmpty)
             Text(
-              'Loading AI advisories...',
-              style: GoogleFonts.poppins(
-                fontSize: 12.sp,
-                color: AppColors.textSecondary,
-              ),
-            )
-          else if (advisories.isEmpty)
-            Text(
-              advisoryError == null
-                  ? emptyMessage
-                  : 'AI advisories unavailable: $advisoryError',
+              _llmError == null ? emptyMessage : 'AI advisories unavailable: $_llmError',
               style: GoogleFonts.poppins(
                 fontSize: 12.sp,
                 color: AppColors.textSecondary,
@@ -628,7 +484,7 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${item.headline} - ${item.timeHorizon}',
+                    '${item.headline} • ${item.timeHorizon}',
                     style: GoogleFonts.poppins(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
@@ -688,20 +544,86 @@ class _WeatherScreenState extends ConsumerState<WeatherScreen> {
     );
   }
 
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home, 'Home', 0),
+              _buildNavItem(Icons.store, 'Market', 1),
+              _buildNavItem(Icons.wb_sunny, 'Weather', 2),
+              _buildNavItem(Icons.people, 'Community', 3),
+              _buildNavItem(Icons.person, 'Profile', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedIndex = index);
+        switch (index) {
+          case 0:
+            context.go('/home');
+            break;
+          case 1:
+            context.go('/marketplace');
+            break;
+          case 2:
+            break;
+          case 3:
+            context.go('/community');
+            break;
+          case 4:
+            context.go('/profile');
+            break;
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
+            size: 24.sp,
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12.sp,
+              color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   IconData _getWeatherIcon(String condition) {
     final normalized = condition.toLowerCase();
-    if (normalized.contains('clear') || normalized.contains('sun')) {
-      return FontAwesomeIcons.sun;
-    }
-    if (normalized.contains('cloud') || normalized.contains('overcast')) {
-      return FontAwesomeIcons.cloud;
-    }
-    if (normalized.contains('rain') || normalized.contains('drizzle')) {
-      return FontAwesomeIcons.cloudRain;
-    }
-    if (normalized.contains('storm') || normalized.contains('thunder')) {
-      return FontAwesomeIcons.cloudBolt;
-    }
+    if (normalized.contains('clear') || normalized.contains('sun')) return FontAwesomeIcons.sun;
+    if (normalized.contains('cloud') || normalized.contains('overcast')) return FontAwesomeIcons.cloud;
+    if (normalized.contains('rain') || normalized.contains('drizzle')) return FontAwesomeIcons.cloudRain;
+    if (normalized.contains('storm') || normalized.contains('thunder')) return FontAwesomeIcons.cloudBolt;
     if (normalized.contains('fog')) return FontAwesomeIcons.smog;
     if (normalized.contains('snow')) return FontAwesomeIcons.snowflake;
     return FontAwesomeIcons.cloud;

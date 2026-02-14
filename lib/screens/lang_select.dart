@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kisan/l10n/app_localizations.dart';
 import 'package:kisan/main.dart'; // Assuming your main app class is in main.dart
 import 'package:kisan/services/app_config_service.dart';
-
+import '../app_extensions.dart';
 import '../services/session_service.dart'; // Import the session service
 
 // A model class to hold language details
@@ -90,7 +90,7 @@ class _LanguageSelectPageState extends State<LanguageSelectPage> {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.languageSelectedSnackbar(_selectedLanguage!.name)),
+          content: Text(context.l10n.languageSelectedSnackbar(_selectedLanguage!.name)),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -121,11 +121,11 @@ class _LanguageSelectPageState extends State<LanguageSelectPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+   
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.selectLanguageTitle),
+        title: Text(context.l10n.selectLanguageTitle),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -137,7 +137,7 @@ class _LanguageSelectPageState extends State<LanguageSelectPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
               child: Text(
-                l10n.selectLanguagePrompt,
+                context.l10n.selectLanguagePrompt,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -186,7 +186,7 @@ class _LanguageSelectPageState extends State<LanguageSelectPage> {
                             strokeWidth: 2.5,
                           ),
                         )
-                      : Text(l10n.continueButton, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      : Text(context.l10n.btnContinue, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             )

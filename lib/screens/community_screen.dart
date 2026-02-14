@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
-
+import '../app_extensions.dart';
 import '../constants/app_colors.dart';
 import '../models/community_post.dart';
 import '../providers/community_provider.dart';
@@ -28,6 +28,26 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     'Success Stories',
     'Questions & Answers',
   ];
+
+  // Helper to convert internal keys (database) to display text (UI)
+  String _getLocalizedCategory(String key) {
+    switch (key) {
+      case 'All':
+        return context.l10n.catAll;
+      case 'Farming Tips':
+        return context.l10n.catFarmingTips;
+      case 'Market Updates':
+        return context.l10n.catMarketUpdates;
+      case 'Weather Alerts':
+        return context.l10n.catWeatherAlerts;
+      case 'Success Stories':
+        return context.l10n.catSuccessStories;
+      case 'Questions & Answers':
+        return context.l10n.catQA;
+      default:
+        return key;
+    }
+  }
 
   @override
   void dispose() {
@@ -54,7 +74,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 child: postsAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => _errorState('Unable to load posts.\n$e'),
+                  error: (e, _) => _errorState('${context.l10n.commErrorLoad}\n$e'),
                   data: (_) {
                     if (filteredPosts.isEmpty) {
                       return _emptyState();
@@ -90,7 +110,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Community',
+                context.l10n.navCommunity,
                 style: GoogleFonts.poppins(
                   fontSize: 28.sp,
                   fontWeight: FontWeight.bold,
@@ -98,7 +118,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 ),
               ),
               Text(
-                'Connect with Fellow Farmers',
+                context.l10n.commSubtitle,
                 style: GoogleFonts.poppins(
                   fontSize: 14.sp,
                   color: AppColors.textSecondary,
@@ -146,7 +166,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             ref.read(searchQueryProvider.notifier).state = value;
           },
           decoration: InputDecoration(
-            hintText: 'Search posts...',
+            hintText: context.l10n.commSearchHint,
             prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
             suffixIcon: query.trim().isEmpty
                 ? null
@@ -198,7 +218,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               ),
               child: Center(
                 child: Text(
-                  category,
+                  _getLocalizedCategory(category),
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
@@ -433,7 +453,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Create New Post'),
+              title:  Text(context.l10n.commBtnCreate),
               content: SizedBox(
                 width: 320,
                 child: SingleChildScrollView(
@@ -447,7 +467,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                           .map(
                             (c) => DropdownMenuItem<String>(
                               value: c,
-                              child: Text(c),
+                              child: Text(_getLocalizedCategory(c)),
                             ),
                           )
                           .toList(),
@@ -455,25 +475,23 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                         if (value == null) return;
                         setDialogState(() => selectedCategory = value);
                       },
-                      decoration: const InputDecoration(labelText: 'Category'),
+                      decoration:  InputDecoration(labelText: context.l10n.addProductLabelCategory),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Title'),
+                      decoration:  InputDecoration(labelText: context.l10n.commLabelTitle),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: contentController,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Content'),
+                      decoration:  InputDecoration(labelText: context.l10n.commLabelContent),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: tagsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tags (comma separated)',
-                      ),
+                      decoration:  InputDecoration(labelText: context.l10n.commLabelTags),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
@@ -488,8 +506,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       icon: const Icon(Icons.photo_library_outlined),
                       label: Text(
                         selectedImageFile == null
-                            ? 'Add Post Photo'
-                            : 'Change Post Photo',
+                            ? context.l10n.commBtnAddPhoto
+                            : context.l10n.commBtnChangePhoto,
                       ),
                     ),
                     if (selectedImageFile != null) ...[
@@ -522,7 +540,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child:  Text(context.l10n.btnCancel),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -532,8 +550,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     final content = contentController.text.trim();
                     if (title.isEmpty || content.isEmpty) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
-                          content: Text('Title and content are required.'),
+                        SnackBar(
+                          content: Text(context.l10n.commMsgRequired),
                         ),
                       );
                       return;
@@ -558,12 +576,12 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       if (!dialogContext.mounted) return;
                       Navigator.pop(dialogContext);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Post created successfully.')),
+                         SnackBar(content: Text(context.l10n.commMsgSuccess)),
                       );
                     } catch (e) {
                       if (!dialogContext.mounted) return;
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(content: Text('Unable to create post: $e')),
+                        SnackBar(content: Text(context.l10n.commPostError(e.toString()))),
                       );
                     } finally {
                       if (dialogContext.mounted) {
@@ -571,7 +589,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       }
                     }
                   },
-                  child: Text(isSubmitting ? 'Posting...' : 'Post'),
+                  child: Text(isSubmitting ? context.l10n.btnPosting : context.l10n.btnPost),
                 ),
               ],
             );
@@ -598,7 +616,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    'Comments',
+                    context.l10n.commCommentsTitle,
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                     ),
@@ -612,10 +630,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       return commentsAsync.when(
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => _errorState('Unable to load comments.\n$e'),
+                        error: (e, _) => _errorState(context.l10n.commCommentsError),
                         data: (comments) {
                           if (comments.isEmpty) {
-                            return _emptyState(label: 'No comments yet');
+                            return _emptyState(label: context.l10n.commCommentsEmpty);
                           }
                           return ListView.builder(
                             itemCount: comments.length,
@@ -654,8 +672,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       Expanded(
                         child: TextField(
                           controller: inputController,
-                          decoration: const InputDecoration(
-                            hintText: 'Write a comment...',
+                          decoration: InputDecoration(
+                            hintText: context.l10n.commCommentsHint,
                           ),
                         ),
                       ),
@@ -681,7 +699,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     );
   }
 
-  Widget _emptyState({String label = 'No posts found'}) {
+  Widget _emptyState({String label = ''}) {
+    if (label.isEmpty) label = context.l10n.commEmptyState;
     return Center(
       child: Text(
         label,

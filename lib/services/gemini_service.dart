@@ -37,7 +37,10 @@ class GeminiService {
     final content = [
       Content.multi([TextPart(prompt), DataPart('image/jpeg', imageBytes)]),
     ];
-    final resp = await _modelDisease!.generateContent(content, generationConfig: GenerationConfig(responseMimeType: 'application/json'));
+    final resp = await _modelDisease!.generateContent(
+      content,
+      generationConfig: GenerationConfig(responseMimeType: 'application/json'),
+    );
     final text = resp.text ?? '{}';
     print("Raw response from Gemini: $text");
     return _safeJson(text);
@@ -72,17 +75,53 @@ class GeminiService {
     // print("Fertilizer Plan Context: $contextData");
     if (_modelText == null) throw Exception('Gemini not initialized');
     // final prompt = _buildFertilizerPrompt(contextData);
-    final prompt  = _newbuildFertilizerPrompt(contextData);
+    final prompt = _newbuildFertilizerPrompt(contextData);
     print("Prompt for fertilizer recommendation: $prompt");
     final resp = await _modelText!.generateContent(
       [Content.text(prompt)],
-      generationConfig: GenerationConfig(responseMimeType: 'application/json', temperature: 0.0, topP: 1.0),
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.0,
+        topP: 1.0,
+      ),
     );
     final text = resp.text ?? '{}';
     print(text);
     return _safeJson(text);
   }
 
+  static Future<Map<String, dynamic>> cropSuggestions({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    if (_modelText == null) throw Exception('Gemini not initialized');
+    final resp = await _modelText!.generateContent(
+      [Content.text(_buildCropSuggestionPrompt(contextData))],
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      ),
+    );
+    final text = resp.text ?? '{}';
+    return _safeJson(text);
+  }
+
+  static Future<Map<String, dynamic>> weatherAdvisories({
+    required Map<String, dynamic> contextData,
+  }) async {
+    await ensureInitialized();
+    if (_modelText == null) throw Exception('Gemini not initialized');
+    final resp = await _modelText!.generateContent(
+      [Content.text(_buildWeatherAdvisoryPrompt(contextData))],
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      ),
+    );
+    final text = resp.text ?? '{}';
+    return _safeJson(text);
+  }
+  
   static Future<List<Map<String, dynamic>>> applicableSchemes({
     required Map<String, dynamic> profile,
   }) async {
@@ -103,10 +142,43 @@ class GeminiService {
           .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
           .toList();
     }
-    print('[GeminiService] Schemes parse returned non-list: ${parsed.runtimeType}');
+    print(
+      '[GeminiService] Schemes parse returned non-list: ${parsed.runtimeType}',
+    );
     return const [];
   }
 
+  static String _buildWeatherAdvisoryPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are a weather + farm operations advisor.
+Use the provided weather forecast and return ONLY valid JSON.
+
+JSON schema (strict):
+{
+  "summary": string,
+  "advisories": [
+    {
+      "headline": string,
+      "advice": string,
+      "reason": string,
+      "priority": "low" | "medium" | "high",
+      "category": "weather" | "irrigation" | "planting" | "spraying" | "pest" | "harvest",
+      "time_horizon": "today" | "1-3d" | "4-7d" | "8-16d"
+    }
+  ]
+}
+
+Rules:
+- Give 3 to 6 advisories.
+- Keep each "advice" concise and action-oriented.
+- Prioritize practical field decisions (irrigation, sowing, spraying, harvest timing).
+- No markdown, no explanation outside JSON.
+
+Context JSON:
+$ctx
+''';
+  }
+  
   static String _buildDiseasePrompt(Map<String, dynamic> ctx) {
     //TODO: refine prompt after all the features and inputs are live.
     return '''
@@ -466,6 +538,44 @@ Return strict JSON array of objects {title, category: subsidy|insurance|loan|tra
 
 Profile JSON:
 $profile
+''';
+  }
+
+  
+  static String _buildCropSuggestionPrompt(Map<String, dynamic> ctx) {
+    return '''
+You are an agronomy planner for Indian farms.
+Return ONLY valid JSON in this exact schema:
+{
+  "generated_at": "ISO-8601 string",
+  "overall_summary": "string",
+  "suggestions": [
+    {
+      "rank": number,
+      "crop_name": "string",
+      "growth_duration_days": number,
+      "irrigation_requirements": "string",
+      "estimated_yield": number,
+      "estimated_yield_unit": "string",
+      "estimated_cost": number,
+      "estimated_revenue": number,
+      "currency": "INR",
+      "overall_summary": "string",
+      "confidence": "High|Medium|Low"
+    }
+  ]
+}
+
+Rules:
+- Provide at least 4 suggestions.
+- Rank by highest estimated_revenue first; if tie, higher estimated_yield first.
+- Use the given land area for yield/cost/revenue estimation.
+- Use rainfall normals, season, irrigation availability, risk tolerance, and preferences in reasoning.
+- If marketplace data is sparse, still estimate using regional averages and keep confidence conservative.
+- Keep responses concise and app-friendly.
+
+INPUT_CONTEXT:
+$ctx
 ''';
   }
 

@@ -12,7 +12,7 @@ import '../constants/crop_options.dart';
 import '../models/crop.dart';
 import '../services/recommendation_service.dart';
 import '../services/session_service.dart';
-import '../Widgets/Widgets/custom_button.dart';
+import '../Widgets/custom_button.dart';
 
 enum FertilizerFlow { baseline, stageBased }
 

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:kisan/constants/app_colors.dart';
 import 'package:kisan/providers/fab_provider.dart';
 import 'package:kisan/providers/profile_provider.dart';
+import '../app_extensions.dart';
 
 
 class ScaffoldWithNavBar extends ConsumerWidget {
@@ -61,11 +62,11 @@ class ScaffoldWithNavBar extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               // Build each nav item using your custom widget
-              _buildNavItem(context, ref, Icons.home_outlined, 'Home', 0, currentIndex),
-              _buildNavItem(context, ref, Icons.store_outlined, 'Market', 1, currentIndex),
-              _buildNavItem(context, ref, Icons.wb_sunny_outlined, 'Weather', 2, currentIndex),
-              _buildNavItem(context, ref, Icons.people_outline, 'Community', 3, currentIndex),
-              _buildNavItem(context, ref, Icons.person_outline, 'Profile', 4, currentIndex),
+              _buildNavItem(context, ref, Icons.home_outlined, context.l10n.navHome, 0, currentIndex),
+              _buildNavItem(context, ref, Icons.store_outlined, context.l10n.navMarketplace, 1, currentIndex),
+              _buildNavItem(context, ref, Icons.wb_sunny_outlined, context.l10n.navWeather, 2, currentIndex),
+              _buildNavItem(context, ref, Icons.people_outline, context.l10n.navCommunity, 3, currentIndex),
+              _buildNavItem(context, ref, Icons.person_outline, context.l10n.navProfile, 4, currentIndex),
             ],
           ),
         ),

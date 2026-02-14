@@ -52,7 +52,6 @@ class RecommendationService {
     ctx['crop'] = crop;
     ctx['current_month'] = DateTime.now().month;
 
-
     // The image, field history,
     // recent weather for that location, crop species & stage, geolocation/soil information,
     // ICAR guidelines, and Government of India / Ministry of Agriculture guidelines
@@ -94,6 +93,18 @@ class RecommendationService {
       return GptService.fertilizerPlan(contextData: contextData);
     }
     return GeminiService.fertilizerPlan(contextData: contextData);
+  }
+
+  static Future<Map<String, dynamic>> cropSuggestionsFromContext({
+    required Map<String, dynamic> contextData,
+    AIProvider? provider,
+  }) async {
+    final selectedProvider = _effectiveProvider(provider);
+    final raw =
+        selectedProvider == AIProvider.gpt
+            ? await GptService.cropSuggestions(contextData: contextData)
+            : await GeminiService.cropSuggestions(contextData: contextData);
+    return _normalizeCropSuggestions(raw);
   }
 
   static Future<List<Map<String, dynamic>>> applicableSchemes({
@@ -186,7 +197,9 @@ class RecommendationService {
 
     final confidenceVal = raw['confidence'];
     final confidence =
-        confidenceVal is num ? confidenceVal.toDouble() : double.tryParse('$confidenceVal') ?? 0.0;
+        confidenceVal is num
+            ? confidenceVal.toDouble()
+            : double.tryParse('$confidenceVal') ?? 0.0;
     return confidence > 0.25;
   }
 
@@ -218,5 +231,97 @@ class RecommendationService {
       default:
         return 'Disease identified successfully.';
     }
+  }
+
+  static Map<String, dynamic> _normalizeCropSuggestions(
+    Map<String, dynamic> raw,
+  ) {
+    final normalized = Map<String, dynamic>.from(raw);
+    final suggestionsRaw = raw['suggestions'];
+    final List<Map<String, dynamic>> suggestions =
+        suggestionsRaw is List
+            ? suggestionsRaw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList()
+            : <Map<String, dynamic>>[];
+
+    suggestions.sort((a, b) {
+      final aRev = _toDouble(a['estimated_revenue']);
+      final bRev = _toDouble(b['estimated_revenue']);
+      final byRevenue = bRev.compareTo(aRev);
+      if (byRevenue != 0) return byRevenue;
+      final aYield = _toDouble(a['estimated_yield']);
+      final bYield = _toDouble(b['estimated_yield']);
+      return bYield.compareTo(aYield);
+    });
+
+    if (suggestions.length < 4) {
+      final defaults = <Map<String, dynamic>>[
+        {
+          'crop_name': 'Bajra',
+          'growth_duration_days': 110,
+          'irrigation_requirements': 'Low, rain-supported',
+          'estimated_yield': 0.0,
+          'estimated_cost': 0.0,
+          'estimated_revenue': 0.0,
+          'overall_summary':
+              'Fallback suggestion: complete market and soil details for accurate ranking.',
+          'confidence': 'Low',
+        },
+        {
+          'crop_name': 'Moong',
+          'growth_duration_days': 70,
+          'irrigation_requirements': 'Low to medium',
+          'estimated_yield': 0.0,
+          'estimated_cost': 0.0,
+          'estimated_revenue': 0.0,
+          'overall_summary':
+              'Fallback suggestion: complete market and soil details for accurate ranking.',
+          'confidence': 'Low',
+        },
+        {
+          'crop_name': 'Mustard',
+          'growth_duration_days': 125,
+          'irrigation_requirements': 'Medium',
+          'estimated_yield': 0.0,
+          'estimated_cost': 0.0,
+          'estimated_revenue': 0.0,
+          'overall_summary':
+              'Fallback suggestion: complete market and soil details for accurate ranking.',
+          'confidence': 'Low',
+        },
+        {
+          'crop_name': 'Chickpea',
+          'growth_duration_days': 105,
+          'irrigation_requirements': 'Low to medium',
+          'estimated_yield': 0.0,
+          'estimated_cost': 0.0,
+          'estimated_revenue': 0.0,
+          'overall_summary':
+              'Fallback suggestion: complete market and soil details for accurate ranking.',
+          'confidence': 'Low',
+        },
+      ];
+      for (final fallback in defaults) {
+        if (suggestions.length >= 4) break;
+        final exists = suggestions.any(
+          (s) =>
+              '${s['crop_name']}'.toLowerCase() ==
+              '${fallback['crop_name']}'.toLowerCase(),
+        );
+        if (!exists) suggestions.add(fallback);
+      }
+    }
+
+    normalized['suggestions'] = suggestions.take(8).toList();
+    normalized['generated_at'] =
+        raw['generated_at']?.toString() ?? DateTime.now().toIso8601String();
+    return normalized;
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0.0;
   }
 }

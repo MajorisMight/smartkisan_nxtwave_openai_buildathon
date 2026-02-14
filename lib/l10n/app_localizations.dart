@@ -98,23 +98,17 @@ abstract class AppLocalizations {
     Locale('hi'),
   ];
 
-  /// No description provided for @selectLanguageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Language'**
-  String get selectLanguageTitle;
-
   /// No description provided for @selectLanguagePrompt.
   ///
   /// In en, this message translates to:
   /// **'Please select your preferred language'**
   String get selectLanguagePrompt;
 
-  /// No description provided for @continueButton.
+  /// No description provided for @selectLanguageTitle.
   ///
   /// In en, this message translates to:
-  /// **'CONTINUE'**
-  String get continueButton;
+  /// **'Select Language'**
+  String get selectLanguageTitle;
 
   /// No description provided for @languageSelectedSnackbar.
   ///
@@ -122,293 +116,611 @@ abstract class AppLocalizations {
   /// **'You selected: {languageName}'**
   String languageSelectedSnackbar(Object languageName);
 
-  /// No description provided for @phoneVer.
+  /// No description provided for @btnSave.
   ///
   /// In en, this message translates to:
-  /// **'Phone Verification'**
-  String get phoneVer;
+  /// **'Save'**
+  String get btnSave;
 
-  /// No description provided for @verStatement.
+  /// No description provided for @btnContinue.
   ///
   /// In en, this message translates to:
-  /// **'Enter your mobile number to receive OTP'**
-  String get verStatement;
+  /// **'Continue'**
+  String get btnContinue;
 
-  /// No description provided for @phoneNo.
+  /// No description provided for @btnSaving.
   ///
   /// In en, this message translates to:
-  /// **'Phone Number'**
-  String get phoneNo;
+  /// **'Saving...'**
+  String get btnSaving;
 
-  /// No description provided for @sendbtn.
+  /// No description provided for @btnPosting.
   ///
   /// In en, this message translates to:
-  /// **'Send OTP'**
-  String get sendbtn;
+  /// **'Posting...'**
+  String get btnPosting;
 
-  /// No description provided for @verifyBtn.
+  /// No description provided for @btnPost.
   ///
   /// In en, this message translates to:
-  /// **'Verify OTP'**
-  String get verifyBtn;
+  /// **'Post'**
+  String get btnPost;
 
-  /// No description provided for @resendBtn.
+  /// No description provided for @btnCancel.
   ///
   /// In en, this message translates to:
-  /// **'Resend OTP'**
-  String get resendBtn;
+  /// **'Cancel'**
+  String get btnCancel;
 
-  /// The header label for the current onboarding step
+  /// No description provided for @btnClose.
   ///
   /// In en, this message translates to:
-  /// **'Step {currentStep}/{totalSteps} • {stepTitle}'**
-  String onboardingStepLabel(int currentStep, int totalSteps, String stepTitle);
+  /// **'Close'**
+  String get btnClose;
 
-  /// No description provided for @stepTitleBasicInfo.
+  /// No description provided for @btnView.
   ///
   /// In en, this message translates to:
-  /// **'Basic Info'**
-  String get stepTitleBasicInfo;
+  /// **'View'**
+  String get btnView;
 
-  /// No description provided for @stepTitleLocation.
+  /// No description provided for @btnViewAll.
   ///
   /// In en, this message translates to:
-  /// **'Location'**
-  String get stepTitleLocation;
+  /// **'View All'**
+  String get btnViewAll;
 
-  /// No description provided for @stepTitleCrops.
+  /// No description provided for @btnRetry.
   ///
   /// In en, this message translates to:
-  /// **'Crops'**
-  String get stepTitleCrops;
+  /// **'Retry'**
+  String get btnRetry;
 
-  /// No description provided for @stepTitleSoilAndWater.
+  /// No description provided for @btnRefresh.
   ///
   /// In en, this message translates to:
-  /// **'Soil & Water'**
-  String get stepTitleSoilAndWater;
+  /// **'Refresh'**
+  String get btnRefresh;
 
-  /// No description provided for @stepTitlePastYields.
+  /// No description provided for @lblComingSoon.
   ///
   /// In en, this message translates to:
-  /// **'Past Yields'**
-  String get stepTitlePastYields;
+  /// **'Coming soon'**
+  String get lblComingSoon;
 
-  /// No description provided for @stepTitleFinanceAndFinish.
+  /// No description provided for @lblSearch.
   ///
   /// In en, this message translates to:
-  /// **'Finance & Finish'**
-  String get stepTitleFinanceAndFinish;
+  /// **'Search...'**
+  String get lblSearch;
 
-  /// No description provided for @backButton.
+  /// No description provided for @lblLoading.
   ///
   /// In en, this message translates to:
-  /// **'Back'**
-  String get backButton;
+  /// **'Loading...'**
+  String get lblLoading;
 
-  /// No description provided for @nextButton.
+  /// No description provided for @navHome.
   ///
   /// In en, this message translates to:
-  /// **'Next'**
-  String get nextButton;
+  /// **'Home'**
+  String get navHome;
 
-  /// No description provided for @finishAndGoToDashboardButton.
+  /// No description provided for @navMarketplace.
   ///
   /// In en, this message translates to:
-  /// **'Finish & Go to Dashboard'**
-  String get finishAndGoToDashboardButton;
+  /// **'Marketplace'**
+  String get navMarketplace;
 
-  /// No description provided for @languageTooltip.
+  /// No description provided for @navWeather.
   ///
   /// In en, this message translates to:
-  /// **'Language'**
-  String get languageTooltip;
+  /// **'Weather'**
+  String get navWeather;
 
-  /// No description provided for @tellUsAboutYouTitle.
+  /// No description provided for @navCommunity.
   ///
   /// In en, this message translates to:
-  /// **'Tell us about you'**
-  String get tellUsAboutYouTitle;
+  /// **'Community'**
+  String get navCommunity;
 
-  /// No description provided for @nameLabel.
+  /// No description provided for @navProfile.
   ///
   /// In en, this message translates to:
-  /// **'Name (optional)'**
-  String get nameLabel;
+  /// **'Profile'**
+  String get navProfile;
 
-  /// No description provided for @nameHint.
+  /// No description provided for @homeGreeting.
   ///
   /// In en, this message translates to:
-  /// **'e.g., Ram Kumar'**
-  String get nameHint;
+  /// **'Good Morning!'**
+  String get homeGreeting;
 
-  /// No description provided for @ageRangeLabel.
+  /// No description provided for @homeDefaultName.
   ///
   /// In en, this message translates to:
-  /// **'Age range *'**
-  String get ageRangeLabel;
+  /// **'Farmer'**
+  String get homeDefaultName;
 
-  /// No description provided for @ageRangeUnder30.
+  /// No description provided for @homeDefaultFarm.
   ///
   /// In en, this message translates to:
-  /// **'Under 30'**
-  String get ageRangeUnder30;
+  /// **'Farm not set'**
+  String get homeDefaultFarm;
 
-  /// No description provided for @ageRange30to55.
+  /// No description provided for @homeQuickStatsSales.
   ///
   /// In en, this message translates to:
-  /// **'30–55'**
-  String get ageRange30to55;
+  /// **'Total Sales'**
+  String get homeQuickStatsSales;
 
-  /// No description provided for @ageRangeOver55.
+  /// No description provided for @homeQuickStatsOrders.
   ///
   /// In en, this message translates to:
-  /// **'Over 55'**
-  String get ageRangeOver55;
+  /// **'Active Orders'**
+  String get homeQuickStatsOrders;
 
-  /// No description provided for @preferredLanguageLabel.
+  /// No description provided for @homeQuickStatsProducts.
   ///
   /// In en, this message translates to:
-  /// **'Preferred language *'**
-  String get preferredLanguageLabel;
+  /// **'Products'**
+  String get homeQuickStatsProducts;
 
-  /// No description provided for @selectLanguageHint.
+  /// No description provided for @homeQuickActionsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Select language'**
-  String get selectLanguageHint;
+  /// **'Quick Actions'**
+  String get homeQuickActionsTitle;
 
-  /// No description provided for @languageHindi.
+  /// No description provided for @homeActionCrops.
   ///
   /// In en, this message translates to:
-  /// **'Hindi'**
-  String get languageHindi;
+  /// **'My Crops'**
+  String get homeActionCrops;
 
-  /// No description provided for @languageEnglish.
+  /// No description provided for @homeActionCropsDesc.
   ///
   /// In en, this message translates to:
-  /// **'English'**
-  String get languageEnglish;
+  /// **'Track fields and crop health'**
+  String get homeActionCropsDesc;
 
-  /// No description provided for @languageRegional.
+  /// No description provided for @homeActionFertilizer.
   ///
   /// In en, this message translates to:
-  /// **'Regional'**
-  String get languageRegional;
+  /// **'Baseline Fertilizer'**
+  String get homeActionFertilizer;
 
-  /// No description provided for @farmingExperienceLabel.
+  /// No description provided for @homeActionFertilizerDesc.
   ///
   /// In en, this message translates to:
-  /// **'Farming experience *'**
-  String get farmingExperienceLabel;
+  /// **'Pre-planting nutrient baseline planner'**
+  String get homeActionFertilizerDesc;
 
-  /// No description provided for @selectExperienceHint.
+  /// No description provided for @homeActionSuggestions.
   ///
   /// In en, this message translates to:
-  /// **'Select experience'**
-  String get selectExperienceHint;
+  /// **'Crop Suggestions'**
+  String get homeActionSuggestions;
 
-  /// No description provided for @experienceBeginner.
+  /// No description provided for @homeActionSuggestionsDesc.
   ///
   /// In en, this message translates to:
-  /// **'Beginner <5 yrs'**
-  String get experienceBeginner;
+  /// **'AI crop plan using backend farm data'**
+  String get homeActionSuggestionsDesc;
 
-  /// No description provided for @experienceIntermediate.
+  /// No description provided for @homeActionDisease.
   ///
   /// In en, this message translates to:
-  /// **'Intermediate 5–15 yrs'**
-  String get experienceIntermediate;
+  /// **'Disease Detection'**
+  String get homeActionDisease;
 
-  /// No description provided for @experienceExpert.
+  /// No description provided for @homeActionSchemes.
   ///
   /// In en, this message translates to:
-  /// **'Expert >15 yrs'**
-  String get experienceExpert;
+  /// **'Govt Schemes'**
+  String get homeActionSchemes;
 
-  /// No description provided for @casteCategoryLabel.
+  /// No description provided for @homeRecentOrders.
   ///
   /// In en, this message translates to:
-  /// **'Caste/Category (optional)'**
-  String get casteCategoryLabel;
+  /// **'Recent Orders'**
+  String get homeRecentOrders;
 
-  /// No description provided for @selectCasteHint.
+  /// No description provided for @homeCommunityUpdates.
   ///
   /// In en, this message translates to:
-  /// **'Select'**
-  String get selectCasteHint;
+  /// **'Community Updates'**
+  String get homeCommunityUpdates;
 
-  /// No description provided for @casteGeneral.
+  /// No description provided for @marketTitle.
   ///
   /// In en, this message translates to:
-  /// **'General'**
-  String get casteGeneral;
+  /// **'Marketplace'**
+  String get marketTitle;
 
-  /// No description provided for @casteSC.
+  /// No description provided for @marketSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'SC'**
-  String get casteSC;
+  /// **'Buy & Sell Agricultural Products'**
+  String get marketSubtitle;
 
-  /// No description provided for @casteST.
+  /// No description provided for @marketSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'ST'**
-  String get casteST;
+  /// **'Search products...'**
+  String get marketSearchHint;
 
-  /// No description provided for @casteOBC.
+  /// No description provided for @marketLabelOrganic.
   ///
   /// In en, this message translates to:
-  /// **'OBC'**
-  String get casteOBC;
+  /// **'ORGANIC'**
+  String get marketLabelOrganic;
 
-  /// No description provided for @casteOther.
+  /// No description provided for @marketNoDescription.
   ///
   /// In en, this message translates to:
-  /// **'Other'**
-  String get casteOther;
+  /// **'No description added.'**
+  String get marketNoDescription;
 
-  /// No description provided for @castePreferNotToSay.
+  /// No description provided for @marketLabelStock.
   ///
   /// In en, this message translates to:
-  /// **'Prefer not to say'**
-  String get castePreferNotToSay;
+  /// **'Stock: {quantity} {unit}'**
+  String marketLabelStock(Object quantity, Object unit);
 
-  /// No description provided for @farmLocationTitle.
+  /// No description provided for @weightUnitKg.
   ///
   /// In en, this message translates to:
-  /// **'Farm Location & General Details'**
-  String get farmLocationTitle;
+  /// **'kg'**
+  String get weightUnitKg;
 
-  /// No description provided for @useMyLocationButton.
+  /// No description provided for @weightUnitTon.
   ///
   /// In en, this message translates to:
-  /// **'Use my location'**
-  String get useMyLocationButton;
+  /// **'ton'**
+  String get weightUnitTon;
 
-  /// Placeholder for the map preview showing coordinates
+  /// No description provided for @weightUnitQuintal.
   ///
   /// In en, this message translates to:
-  /// **'Map preview here ({lat}, {lon})'**
-  String mapPreviewPlaceholder(String lat, String lon);
+  /// **'quintal'**
+  String get weightUnitQuintal;
 
-  /// No description provided for @tehsilLabel.
+  /// No description provided for @weightUnitPiece.
   ///
   /// In en, this message translates to:
-  /// **'Tehsil'**
-  String get tehsilLabel;
+  /// **'piece'**
+  String get weightUnitPiece;
 
-  /// No description provided for @villageTownHint.
+  /// No description provided for @weightUnitBag.
   ///
   /// In en, this message translates to:
-  /// **'Type village/town'**
-  String get villageTownHint;
+  /// **'bag'**
+  String get weightUnitBag;
 
-  /// No description provided for @districtLabel.
+  /// No description provided for @unitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get unitLabel;
+
+  /// No description provided for @marketEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found'**
+  String get marketEmptyState;
+
+  /// No description provided for @marketErrorLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load products.'**
+  String get marketErrorLoad;
+
+  /// No description provided for @addProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Product'**
+  String get addProductTitle;
+
+  /// No description provided for @addProductLabelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get addProductLabelName;
+
+  /// No description provided for @addProductLabelDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get addProductLabelDesc;
+
+  /// No description provided for @addProductLabelPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get addProductLabelPrice;
+
+  /// No description provided for @addProductLabelStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock Quantity'**
+  String get addProductLabelStock;
+
+  /// No description provided for @addProductLabelCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get addProductLabelCategory;
+
+  /// No description provided for @addProductLabelUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get addProductLabelUnit;
+
+  /// No description provided for @addProductCheckboxOrganic.
+  ///
+  /// In en, this message translates to:
+  /// **'Organic product'**
+  String get addProductCheckboxOrganic;
+
+  /// No description provided for @addProductBtnAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Product Photo'**
+  String get addProductBtnAddPhoto;
+
+  /// No description provided for @addProductBtnChangePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Product Photo'**
+  String get addProductBtnChangePhoto;
+
+  /// No description provided for @addProductMsgSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product added successfully.'**
+  String get addProductMsgSuccess;
+
+  /// No description provided for @addProductMsgError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to add product: {error}'**
+  String addProductMsgError(Object error);
+
+  /// No description provided for @addProductMsgRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, price and stock are required.'**
+  String get addProductMsgRequired;
+
+  /// No description provided for @catAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get catAll;
+
+  /// No description provided for @catFertilizers.
+  ///
+  /// In en, this message translates to:
+  /// **'Fertilizers'**
+  String get catFertilizers;
+
+  /// No description provided for @catSeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeds'**
+  String get catSeeds;
+
+  /// No description provided for @catPesticides.
+  ///
+  /// In en, this message translates to:
+  /// **'Pesticides'**
+  String get catPesticides;
+
+  /// No description provided for @catEquipment.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipment'**
+  String get catEquipment;
+
+  /// No description provided for @catOrganic.
+  ///
+  /// In en, this message translates to:
+  /// **'Organic'**
+  String get catOrganic;
+
+  /// No description provided for @commTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community'**
+  String get commTitle;
+
+  /// No description provided for @commSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with Fellow Farmers'**
+  String get commSubtitle;
+
+  /// No description provided for @commSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search posts...'**
+  String get commSearchHint;
+
+  /// No description provided for @commEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts found'**
+  String get commEmptyState;
+
+  /// No description provided for @commErrorLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load posts.'**
+  String get commErrorLoad;
+
+  /// No description provided for @commBtnCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Post'**
+  String get commBtnCreate;
+
+  /// No description provided for @commDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Post'**
+  String get commDialogTitle;
+
+  /// No description provided for @commLabelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get commLabelTitle;
+
+  /// No description provided for @commLabelContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get commLabelContent;
+
+  /// No description provided for @commLabelTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags (comma separated)'**
+  String get commLabelTags;
+
+  /// No description provided for @commBtnAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Post Photo'**
+  String get commBtnAddPhoto;
+
+  /// No description provided for @commBtnChangePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Post Photo'**
+  String get commBtnChangePhoto;
+
+  /// No description provided for @commMsgSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Post created successfully.'**
+  String get commMsgSuccess;
+
+  /// No description provided for @commMsgRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Title and content are required.'**
+  String get commMsgRequired;
+
+  /// No description provided for @commCommentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get commCommentsTitle;
+
+  /// No description provided for @commCommentsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment...'**
+  String get commCommentsHint;
+
+  /// No description provided for @commCommentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet'**
+  String get commCommentsEmpty;
+
+  /// No description provided for @commCommentsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load comments.'**
+  String get commCommentsError;
+
+  /// No description provided for @commPostError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to create post: {error}'**
+  String commPostError(Object error);
+
+  /// No description provided for @catFarmingTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Farming Tips'**
+  String get catFarmingTips;
+
+  /// No description provided for @catMarketUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Market Updates'**
+  String get catMarketUpdates;
+
+  /// No description provided for @catWeatherAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather Alerts'**
+  String get catWeatherAlerts;
+
+  /// No description provided for @catSuccessStories.
+  ///
+  /// In en, this message translates to:
+  /// **'Success Stories'**
+  String get catSuccessStories;
+
+  /// No description provided for @catQA.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions & Answers'**
+  String get catQA;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can edit these anytime from your profile.'**
+  String get profileEditHint;
+
+  /// No description provided for @profileTabPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Information'**
+  String get profileTabPersonal;
+
+  /// No description provided for @profileTabAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get profileTabAddress;
+
+  /// No description provided for @profileLabelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileLabelName;
+
+  /// No description provided for @profileNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get profileNameHint;
+
+  /// No description provided for @profileLabelVillage.
+  ///
+  /// In en, this message translates to:
+  /// **'Village'**
+  String get profileLabelVillage;
+
+  /// No description provided for @profileLabelDistrict.
   ///
   /// In en, this message translates to:
   /// **'District'**
-  String get districtLabel;
+  String get profileLabelDistrict;
 
   /// No description provided for @selectDistrictHint.
   ///
@@ -416,23 +728,41 @@ abstract class AppLocalizations {
   /// **'Select district'**
   String get selectDistrictHint;
 
-  /// No description provided for @stateLabel.
+  /// No description provided for @profileLabelState.
   ///
   /// In en, this message translates to:
   /// **'State'**
-  String get stateLabel;
+  String get profileLabelState;
 
-  /// No description provided for @selectStateHint.
+  /// No description provided for @stateHint.
   ///
   /// In en, this message translates to:
   /// **'Select state'**
-  String get selectStateHint;
+  String get stateHint;
+
+  /// No description provided for @labelTehsil.
+  ///
+  /// In en, this message translates to:
+  /// **'Tehsil'**
+  String get labelTehsil;
+
+  /// No description provided for @villageTownHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type village/town'**
+  String get villageTownHint;
 
   /// No description provided for @totalFarmAreaLabel.
   ///
   /// In en, this message translates to:
-  /// **'Total farm area *'**
+  /// **'Total farm area'**
   String get totalFarmAreaLabel;
+
+  /// No description provided for @areaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Area'**
+  String get areaLabel;
 
   /// No description provided for @farmAreaHint.
   ///
@@ -440,713 +770,299 @@ abstract class AppLocalizations {
   /// **'e.g., 2.5'**
   String get farmAreaHint;
 
-  /// No description provided for @areaUnitAcre.
+  /// No description provided for @farmEmptyState.
   ///
   /// In en, this message translates to:
-  /// **'acre'**
-  String get areaUnitAcre;
+  /// **'No crops found.'**
+  String get farmEmptyState;
 
-  /// No description provided for @areaUnitHectare.
+  /// No description provided for @cropStatisticsTitle.
   ///
   /// In en, this message translates to:
-  /// **'hectare'**
-  String get areaUnitHectare;
+  /// **'Crop Statistics'**
+  String get cropStatisticsTitle;
 
-  /// No description provided for @waterSourceLabel.
+  /// No description provided for @totalcropsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Water source (multi-select)'**
-  String get waterSourceLabel;
+  /// **'Total crops'**
+  String get totalcropsLabel;
 
-  /// No description provided for @waterSourceRiver.
+  /// No description provided for @avgYieldLabel.
   ///
   /// In en, this message translates to:
-  /// **'River'**
-  String get waterSourceRiver;
+  /// **'Average yield'**
+  String get avgYieldLabel;
 
-  /// No description provided for @waterSourceWell.
+  /// No description provided for @activeCropsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Well'**
-  String get waterSourceWell;
+  /// **'Active crops'**
+  String get activeCropsLabel;
 
-  /// No description provided for @waterSourceCanal.
+  /// No description provided for @readyForHarvestLabel.
   ///
   /// In en, this message translates to:
-  /// **'Canal'**
-  String get waterSourceCanal;
+  /// **'Ready for harvest'**
+  String get readyForHarvestLabel;
 
-  /// No description provided for @waterSourceRainfed.
+  /// No description provided for @addCropTitle.
   ///
   /// In en, this message translates to:
-  /// **'Rainfed'**
-  String get waterSourceRainfed;
+  /// **'Add Crop'**
+  String get addCropTitle;
 
-  /// No description provided for @waterSourceBorewell.
+  /// No description provided for @cropTypeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Borewell'**
-  String get waterSourceBorewell;
+  /// **'Crop Type'**
+  String get cropTypeLabel;
 
-  /// No description provided for @farmerGroupMembershipLabel.
+  /// No description provided for @cropTypeHint.
   ///
   /// In en, this message translates to:
-  /// **'Farmer group / Co-op membership'**
-  String get farmerGroupMembershipLabel;
+  /// **'Select crop type'**
+  String get cropTypeHint;
 
-  /// No description provided for @yes.
+  /// No description provided for @sownAreaLabel.
   ///
   /// In en, this message translates to:
-  /// **'Yes'**
-  String get yes;
+  /// **'Sown Area (acres)'**
+  String get sownAreaLabel;
 
-  /// No description provided for @no.
-  ///
-  /// In en, this message translates to:
-  /// **'No'**
-  String get no;
-
-  /// No description provided for @groupNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Name of group'**
-  String get groupNameHint;
-
-  /// No description provided for @cropsAndPracticesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Crops & Practices'**
-  String get cropsAndPracticesTitle;
-
-  /// No description provided for @primaryCropsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Primary crops (multi-select)'**
-  String get primaryCropsLabel;
-
-  /// No description provided for @cropWheat.
-  ///
-  /// In en, this message translates to:
-  /// **'Wheat'**
-  String get cropWheat;
-
-  /// No description provided for @cropMoong.
-  ///
-  /// In en, this message translates to:
-  /// **'Moong'**
-  String get cropMoong;
-
-  /// No description provided for @cropIsabgol.
-  ///
-  /// In en, this message translates to:
-  /// **'Isabogl'**
-  String get cropIsabgol;
-
-  /// No description provided for @cropMustard.
-  ///
-  /// In en, this message translates to:
-  /// **'Mustard'**
-  String get cropMustard;
-
-  /// No description provided for @cropGroundnut.
-  ///
-  /// In en, this message translates to:
-  /// **'Groundnut'**
-  String get cropGroundnut;
-
-  /// No description provided for @cropCotton.
-  ///
-  /// In en, this message translates to:
-  /// **'Cotton'**
-  String get cropCotton;
-
-  /// No description provided for @currentFieldStatusLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Current Status of Field'**
-  String get currentFieldStatusLabel;
-
-  /// No description provided for @selectStatusHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get selectStatusHint;
-
-  /// No description provided for @fieldStatusPreparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing'**
-  String get fieldStatusPreparing;
-
-  /// No description provided for @fieldStatusSowing.
-  ///
-  /// In en, this message translates to:
-  /// **'Sowing'**
-  String get fieldStatusSowing;
-
-  /// No description provided for @fieldStatusGrowing.
-  ///
-  /// In en, this message translates to:
-  /// **'Growing'**
-  String get fieldStatusGrowing;
-
-  /// No description provided for @fieldStatusHarvesting.
-  ///
-  /// In en, this message translates to:
-  /// **'Harvesting'**
-  String get fieldStatusHarvesting;
-
-  /// No description provided for @expectedAcreageLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Expected acreage for this crop'**
-  String get expectedAcreageLabel;
-
-  /// No description provided for @expectedAcreageHint.
+  /// No description provided for @sownAreaHint.
   ///
   /// In en, this message translates to:
   /// **'e.g., 1.5'**
-  String get expectedAcreageHint;
+  String get sownAreaHint;
 
-  /// No description provided for @previousCropLabel.
+  /// No description provided for @sownAreaHintError.
   ///
   /// In en, this message translates to:
-  /// **'Previous crop (last season)'**
-  String get previousCropLabel;
+  /// **'Please enter a valid area'**
+  String get sownAreaHintError;
 
-  /// No description provided for @selectPreviousCropHint.
+  /// No description provided for @plantedDateLabel.
   ///
   /// In en, this message translates to:
-  /// **'Select'**
-  String get selectPreviousCropHint;
+  /// **'Planted Date'**
+  String get plantedDateLabel;
 
-  /// No description provided for @previousCropFallow.
+  /// No description provided for @cropLabelHint.
   ///
   /// In en, this message translates to:
-  /// **'Fallow'**
-  String get previousCropFallow;
+  /// **'e.g., Wheat - July Field'**
+  String get cropLabelHint;
 
-  /// No description provided for @previousCropPulses.
+  /// No description provided for @cropLabelHintError.
   ///
   /// In en, this message translates to:
-  /// **'Pulses'**
-  String get previousCropPulses;
+  /// **'Please enter a crop label'**
+  String get cropLabelHintError;
 
-  /// No description provided for @previousCropMaize.
+  /// No description provided for @cropSaveError.
   ///
   /// In en, this message translates to:
-  /// **'Maize'**
-  String get previousCropMaize;
+  /// **'Unable to save crop to server'**
+  String get cropSaveError;
 
-  /// No description provided for @previousCropRice.
+  /// No description provided for @addCropSuccessful.
   ///
   /// In en, this message translates to:
-  /// **'Rice'**
-  String get previousCropRice;
+  /// **'{cropName} added successfully.'**
+  String addCropSuccessful(Object cropName);
 
-  /// No description provided for @previousCropOilseeds.
+  /// No description provided for @profileLabelEmail.
   ///
   /// In en, this message translates to:
-  /// **'Oilseeds'**
-  String get previousCropOilseeds;
+  /// **'Email'**
+  String get profileLabelEmail;
 
-  /// No description provided for @previousCropVegetables.
+  /// No description provided for @profileLabelLanguage.
   ///
   /// In en, this message translates to:
-  /// **'Vegetables'**
-  String get previousCropVegetables;
+  /// **'Language'**
+  String get profileLabelLanguage;
 
-  /// No description provided for @previousCropOther.
+  /// No description provided for @profileNotProvided.
   ///
   /// In en, this message translates to:
-  /// **'Other'**
-  String get previousCropOther;
+  /// **'Not provided'**
+  String get profileNotProvided;
 
-  /// No description provided for @soilAndWaterReportsTitle.
+  /// No description provided for @profileErrorLoad.
   ///
   /// In en, this message translates to:
-  /// **'Soil & Water Reports'**
-  String get soilAndWaterReportsTitle;
+  /// **'Unable to load profile'**
+  String get profileErrorLoad;
 
-  /// No description provided for @soilTestReportLabel.
+  /// No description provided for @settingsEditProfile.
   ///
   /// In en, this message translates to:
-  /// **'Soil test report (optional)'**
-  String get soilTestReportLabel;
+  /// **'Edit Profile'**
+  String get settingsEditProfile;
 
-  /// No description provided for @uploadPhotoPdfButton.
+  /// No description provided for @settingsChangePass.
   ///
   /// In en, this message translates to:
-  /// **'Upload Photo / PDF'**
-  String get uploadPhotoPdfButton;
+  /// **'Change Password'**
+  String get settingsChangePass;
 
-  /// No description provided for @enterManuallyButton.
+  /// No description provided for @settingsChangePassDesc.
   ///
   /// In en, this message translates to:
-  /// **'Enter Manually'**
-  String get enterManuallyButton;
+  /// **'Set a new account password'**
+  String get settingsChangePassDesc;
 
-  /// No description provided for @nValueLabel.
+  /// No description provided for @settingsForgotPass.
   ///
   /// In en, this message translates to:
-  /// **'N (ppm)'**
-  String get nValueLabel;
+  /// **'Forgot Password'**
+  String get settingsForgotPass;
 
-  /// No description provided for @nValueHint.
+  /// No description provided for @settingsForgotPassDesc.
   ///
   /// In en, this message translates to:
-  /// **'e.g., 120'**
-  String get nValueHint;
+  /// **'Send reset link to email'**
+  String get settingsForgotPassDesc;
 
-  /// No description provided for @pValueLabel.
+  /// No description provided for @settingsLogout.
   ///
   /// In en, this message translates to:
-  /// **'P (ppm)'**
-  String get pValueLabel;
+  /// **'Logout'**
+  String get settingsLogout;
 
-  /// No description provided for @pValueHint.
+  /// No description provided for @settingsLogoutDesc.
   ///
   /// In en, this message translates to:
-  /// **'e.g., 18'**
-  String get pValueHint;
+  /// **'Sign out from this device'**
+  String get settingsLogoutDesc;
 
-  /// No description provided for @kValueLabel.
+  /// No description provided for @settingsDelete.
   ///
   /// In en, this message translates to:
-  /// **'K (ppm)'**
-  String get kValueLabel;
+  /// **'Delete Account (Coming soon)'**
+  String get settingsDelete;
 
-  /// No description provided for @kValueHint.
+  /// No description provided for @formCurrentPass.
   ///
   /// In en, this message translates to:
-  /// **'e.g., 200'**
-  String get kValueHint;
+  /// **'Current Password'**
+  String get formCurrentPass;
 
-  /// No description provided for @phLabel.
+  /// No description provided for @formNewPass.
   ///
   /// In en, this message translates to:
-  /// **'pH (1–14)'**
-  String get phLabel;
+  /// **'New Password'**
+  String get formNewPass;
 
-  /// No description provided for @phHint.
+  /// No description provided for @formConfirmPass.
   ///
   /// In en, this message translates to:
-  /// **'e.g., 6.8'**
-  String get phHint;
+  /// **'Confirm Password'**
+  String get formConfirmPass;
 
-  /// No description provided for @organicMatterLabel.
+  /// No description provided for @formBtnUpdatePass.
   ///
   /// In en, this message translates to:
-  /// **'Organic matter %'**
-  String get organicMatterLabel;
+  /// **'Update Password'**
+  String get formBtnUpdatePass;
 
-  /// No description provided for @organicMatterHint.
+  /// No description provided for @formMsgPassSuccess.
   ///
   /// In en, this message translates to:
-  /// **'e.g., 1.5'**
-  String get organicMatterHint;
+  /// **'Password updated successfully'**
+  String get formMsgPassSuccess;
 
-  /// No description provided for @lastSoilTestDateLabel.
+  /// No description provided for @formMsgPassResetSent.
   ///
   /// In en, this message translates to:
-  /// **'Last soil test date'**
-  String get lastSoilTestDateLabel;
+  /// **'Password reset link sent to your email'**
+  String get formMsgPassResetSent;
 
-  /// No description provided for @lastSoilTestDateHint.
+  /// No description provided for @formErrorPassMatch.
   ///
   /// In en, this message translates to:
-  /// **'YYYY-MM-DD'**
-  String get lastSoilTestDateHint;
+  /// **'New password and confirm password do not match'**
+  String get formErrorPassMatch;
 
-  /// No description provided for @waterQualityLabel.
+  /// No description provided for @formErrorPassLength.
   ///
   /// In en, this message translates to:
-  /// **'Water quality'**
-  String get waterQualityLabel;
+  /// **'Minimum 6 characters required'**
+  String get formErrorPassLength;
 
-  /// No description provided for @salinityHint.
+  /// No description provided for @imgPickCamera.
   ///
   /// In en, this message translates to:
-  /// **'Salinity'**
-  String get salinityHint;
+  /// **'Take photo'**
+  String get imgPickCamera;
 
-  /// No description provided for @salinityLow.
+  /// No description provided for @imgPickGallery.
   ///
   /// In en, this message translates to:
-  /// **'Low'**
-  String get salinityLow;
+  /// **'Choose from gallery'**
+  String get imgPickGallery;
 
-  /// No description provided for @salinityMedium.
+  /// No description provided for @imgPreviewUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Medium'**
-  String get salinityMedium;
+  /// **'Preview unavailable'**
+  String get imgPreviewUnavailable;
 
-  /// No description provided for @salinityHigh.
+  /// No description provided for @languageTooltip.
   ///
   /// In en, this message translates to:
-  /// **'High'**
-  String get salinityHigh;
+  /// **'Select Language'**
+  String get languageTooltip;
 
-  /// No description provided for @waterPhHint.
+  /// No description provided for @languageEnglish.
   ///
   /// In en, this message translates to:
-  /// **'Water pH'**
-  String get waterPhHint;
+  /// **'English'**
+  String get languageEnglish;
 
-  /// No description provided for @bookSoilTestPrompt.
+  /// No description provided for @languageHindi.
   ///
   /// In en, this message translates to:
-  /// **'Book for soil test?'**
-  String get bookSoilTestPrompt;
+  /// **'Hindi'**
+  String get languageHindi;
 
-  /// No description provided for @historicalDataTitle.
+  /// No description provided for @profilePhone.
   ///
   /// In en, this message translates to:
-  /// **'Historical Data & Past Yields'**
-  String get historicalDataTitle;
+  /// **'Phone'**
+  String get profilePhone;
 
-  /// Label for entering last season's yield for a specific crop.
+  /// No description provided for @diseaseDetectTitle.
   ///
   /// In en, this message translates to:
-  /// **'Last season yield — {cropName}'**
-  String lastSeasonYieldLabel(String cropName);
+  /// **'Disease Detection'**
+  String get diseaseDetectTitle;
 
-  /// No description provided for @yieldValueHint.
+  /// No description provided for @diseaseIntruction.
   ///
   /// In en, this message translates to:
-  /// **'Value'**
-  String get yieldValueHint;
+  /// **'Capture or upload crop image'**
+  String get diseaseIntruction;
 
-  /// No description provided for @yieldUnitHint.
+  /// No description provided for @diseaseHint.
   ///
   /// In en, this message translates to:
-  /// **'Unit'**
-  String get yieldUnitHint;
+  /// **'Use clear daylight photos for better accuracy'**
+  String get diseaseHint;
 
-  /// No description provided for @yieldUnitKgPerAcre.
+  /// No description provided for @cameraLabel.
   ///
   /// In en, this message translates to:
-  /// **'kg/acre'**
-  String get yieldUnitKgPerAcre;
+  /// **'Camera'**
+  String get cameraLabel;
 
-  /// No description provided for @yieldUnitQuintalPerAcre.
+  /// No description provided for @galleryLabel.
   ///
   /// In en, this message translates to:
-  /// **'quintal/acre'**
-  String get yieldUnitQuintalPerAcre;
-
-  /// No description provided for @planningForThisYearLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'What are you planning to grow this year on that place?'**
-  String get planningForThisYearLabel;
-
-  /// No description provided for @plannedCropHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Select crop'**
-  String get plannedCropHint;
-
-  /// No description provided for @plannedCropNothing.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing'**
-  String get plannedCropNothing;
-
-  /// No description provided for @previousInputsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Previous inputs (optional)'**
-  String get previousInputsLabel;
-
-  /// No description provided for @inputUrea.
-  ///
-  /// In en, this message translates to:
-  /// **'Urea'**
-  String get inputUrea;
-
-  /// No description provided for @inputDAP.
-  ///
-  /// In en, this message translates to:
-  /// **'DAP'**
-  String get inputDAP;
-
-  /// No description provided for @inputNPKBlends.
-  ///
-  /// In en, this message translates to:
-  /// **'NPK blends'**
-  String get inputNPKBlends;
-
-  /// No description provided for @inputImidacloprid.
-  ///
-  /// In en, this message translates to:
-  /// **'Imidacloprid'**
-  String get inputImidacloprid;
-
-  /// No description provided for @inputMancozeb.
-  ///
-  /// In en, this message translates to:
-  /// **'Mancozeb'**
-  String get inputMancozeb;
-
-  /// No description provided for @inputOther.
-  ///
-  /// In en, this message translates to:
-  /// **'Other'**
-  String get inputOther;
-
-  /// No description provided for @historicalWeatherImpactsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Historical weather impacts (optional)'**
-  String get historicalWeatherImpactsLabel;
-
-  /// No description provided for @impactDrought.
-  ///
-  /// In en, this message translates to:
-  /// **'Drought'**
-  String get impactDrought;
-
-  /// No description provided for @impactFlood.
-  ///
-  /// In en, this message translates to:
-  /// **'Flood'**
-  String get impactFlood;
-
-  /// No description provided for @impactHeatwave.
-  ///
-  /// In en, this message translates to:
-  /// **'Heatwave'**
-  String get impactHeatwave;
-
-  /// No description provided for @impactPestOutbreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Pest outbreak'**
-  String get impactPestOutbreak;
-
-  /// No description provided for @impactNone.
-  ///
-  /// In en, this message translates to:
-  /// **'None'**
-  String get impactNone;
-
-  /// No description provided for @uploadPastFarmPhotosLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload past farm photos or diary scans (optional)'**
-  String get uploadPastFarmPhotosLabel;
-
-  /// No description provided for @selectFromGalleryButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Select from gallery'**
-  String get selectFromGalleryButton;
-
-  /// No description provided for @usedGovSchemesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Government schemes last season?'**
-  String get usedGovSchemesLabel;
-
-  /// No description provided for @whichSchemesHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Which schemes?'**
-  String get whichSchemesHint;
-
-  /// No description provided for @financeAndFinishTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Finance & Finish'**
-  String get financeAndFinishTitle;
-
-  /// No description provided for @bankAccountLinkedLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Bank account linked?'**
-  String get bankAccountLinkedLabel;
-
-  /// No description provided for @bankNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Bank name (optional)'**
-  String get bankNameHint;
-
-  /// No description provided for @cropInsuranceEnrolledLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Crop insurance enrolled?'**
-  String get cropInsuranceEnrolledLabel;
-
-  /// No description provided for @insuranceProviderHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider (optional)'**
-  String get insuranceProviderHint;
-
-  /// No description provided for @annualFarmIncomeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Annual farm income range'**
-  String get annualFarmIncomeLabel;
-
-  /// No description provided for @selectIncomeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get selectIncomeHint;
-
-  /// No description provided for @incomeLow.
-  ///
-  /// In en, this message translates to:
-  /// **'Low <₹1L'**
-  String get incomeLow;
-
-  /// No description provided for @incomeMedium.
-  ///
-  /// In en, this message translates to:
-  /// **'Medium ₹1–5L'**
-  String get incomeMedium;
-
-  /// No description provided for @incomeHigh.
-  ///
-  /// In en, this message translates to:
-  /// **'High >₹5L'**
-  String get incomeHigh;
-
-  /// No description provided for @preferredPaymentMethodLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Preferred payment method'**
-  String get preferredPaymentMethodLabel;
-
-  /// No description provided for @selectPaymentMethodHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Select'**
-  String get selectPaymentMethodHint;
-
-  /// No description provided for @paymentUPI.
-  ///
-  /// In en, this message translates to:
-  /// **'UPI'**
-  String get paymentUPI;
-
-  /// No description provided for @paymentCOD.
-  ///
-  /// In en, this message translates to:
-  /// **'COD'**
-  String get paymentCOD;
-
-  /// No description provided for @paymentWallet.
-  ///
-  /// In en, this message translates to:
-  /// **'Wallet'**
-  String get paymentWallet;
-
-  /// No description provided for @consentAnalyticsPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive AI suggestions & upload anonymized data to improve recommendations.'**
-  String get consentAnalyticsPrompt;
-
-  /// No description provided for @summaryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Summary'**
-  String get summaryTitle;
-
-  /// No description provided for @summaryFields.
-  ///
-  /// In en, this message translates to:
-  /// **'Fields'**
-  String get summaryFields;
-
-  /// Summary row for a specific crop's acreage.
-  ///
-  /// In en, this message translates to:
-  /// **'{cropName} acreage'**
-  String summaryAcreage(String cropName);
-
-  /// No description provided for @summaryPrimaryCrops.
-  ///
-  /// In en, this message translates to:
-  /// **'Primary crops'**
-  String get summaryPrimaryCrops;
-
-  /// No description provided for @summaryTotalArea.
-  ///
-  /// In en, this message translates to:
-  /// **'Total area'**
-  String get summaryTotalArea;
-
-  /// No description provided for @summarySoilTest.
-  ///
-  /// In en, this message translates to:
-  /// **'Soil test'**
-  String get summarySoilTest;
-
-  /// No description provided for @summarySoilTestPresent.
-  ///
-  /// In en, this message translates to:
-  /// **'Present'**
-  String get summarySoilTestPresent;
-
-  /// No description provided for @summarySoilTestAbsent.
-  ///
-  /// In en, this message translates to:
-  /// **'Absent'**
-  String get summarySoilTestAbsent;
-
-  /// No description provided for @summaryBank.
-  ///
-  /// In en, this message translates to:
-  /// **'Bank'**
-  String get summaryBank;
-
-  /// No description provided for @summaryInsurance.
-  ///
-  /// In en, this message translates to:
-  /// **'Insurance'**
-  String get summaryInsurance;
-
-  /// No description provided for @termsAcceptedPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'I agree to terms & privacy'**
-  String get termsAcceptedPrompt;
-
-  /// No description provided for @searchHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Search...'**
-  String get searchHint;
-
-  /// No description provided for @addOtherButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Other'**
-  String get addOtherButton;
-
-  /// No description provided for @cancelButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get cancelButton;
-
-  /// No description provided for @addButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get addButton;
-
-  /// No description provided for @verifyButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Verify'**
-  String get verifyButton;
+  /// **'Gallery'**
+  String get galleryLabel;
 }
 
 class _AppLocalizationsDelegate

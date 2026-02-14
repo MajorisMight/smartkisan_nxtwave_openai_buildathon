@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
-
+import '../app_extensions.dart';
 import '../constants/app_colors.dart';
 import '../models/product.dart';
 import '../providers/marketplace_provider.dart';
@@ -28,6 +28,26 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     'Equipment',
     'Organic',
   ];
+
+  // Helper to convert internal keys (database) to display text (UI)
+  String _getLocalizedCategory(String key) {
+    switch (key) {
+      case 'All':
+        return context.l10n.catAll;
+      case 'Fertilizers':
+        return context.l10n.catFertilizers;
+      case 'Seeds':
+        return context.l10n.catSeeds;
+      case 'Pesticides':
+        return context.l10n.catPesticides;
+      case 'Equipment':
+        return context.l10n.catEquipment;
+      case 'Organic':
+        return context.l10n.catOrganic;
+      default:
+        return key;
+    }
+  }
 
   @override
   void initState() {
@@ -54,8 +74,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
-              _buildSearchBar(),
+              _buildHeader(context),
+              _buildSearchBar(context),
               _buildCategories(),
               Expanded(
                 child: productsAsync.when(
@@ -69,7 +89,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       itemCount: filteredProducts.length,
                       itemBuilder: (context, index) =>
-                          _buildProductCard(filteredProducts[index]),
+                          _buildProductCard(filteredProducts[index], context),
                     );
                   },
                 ),
@@ -86,7 +106,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(20.w),
       child: Row(
@@ -96,7 +116,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Marketplace',
+                context.l10n.navMarketplace,
                 style: GoogleFonts.poppins(
                   fontSize: 28.sp,
                   fontWeight: FontWeight.bold,
@@ -104,7 +124,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                 ),
               ),
               Text(
-                'Buy & Sell Agricultural Products',
+                context.l10n.marketSubtitle,
                 style: GoogleFonts.poppins(
                   fontSize: 14.sp,
                   color: AppColors.textSecondary,
@@ -115,7 +135,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
           Row(
             children: [
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: context.l10n.btnRefresh,
                 onPressed: () {
                   ref.invalidate(productsProvider);
                 },
@@ -145,7 +165,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Container(
@@ -163,7 +183,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         child: TextField(
           controller: _searchController,
           decoration: InputDecoration(
-            hintText: 'Search products...',
+            hintText: context.l10n.marketSearchHint,
             prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
             border: InputBorder.none,
             contentPadding:
@@ -204,7 +224,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               ),
               child: Center(
                 child: Text(
-                  category,
+                  _getLocalizedCategory(category),
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
@@ -220,7 +240,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     );
   }
 
-  Widget _buildProductCard(Product product) {
+  Widget _buildProductCard(Product product, BuildContext context) {
     final imageUrl = product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -288,7 +308,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                           borderRadius: BorderRadius.circular(4.r),
                         ),
                         child: Text(
-                          'ORGANIC',
+                          context.l10n.marketLabelOrganic,
                           style: GoogleFonts.poppins(
                             fontSize: 10.sp,
                             fontWeight: FontWeight.bold,
@@ -301,7 +321,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                 SizedBox(height: 8.h),
                 Text(
                   product.description.isEmpty
-                      ? 'No description added.'
+                      ? context.l10n.marketNoDescription
                       : product.description,
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
@@ -358,7 +378,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                     ),
                     OutlinedButton(
                       onPressed: () => _showProductDetails(product),
-                      child: const Text('View'),
+                      child: Text(context.l10n.btnView),
                     ),
                   ],
                 ),
@@ -383,12 +403,12 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     File? selectedImageFile;
 
     await showDialog<void>(
-      context: context,
+      context: this.context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Add Product'),
+              title: Text(context.l10n.addProductTitle),
               content: SizedBox(
                 width: 320,
                 child: SingleChildScrollView(
@@ -397,27 +417,27 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelName),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: descriptionController,
                       maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Description'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelDesc),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: priceController,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Price'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelPrice),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: stockController,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Stock Quantity'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelStock),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
@@ -427,7 +447,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                           .map(
                             (c) => DropdownMenuItem<String>(
                               value: c,
-                              child: Text(c),
+                              child: Text(_getLocalizedCategory(c)),
                             ),
                           )
                           .toList(),
@@ -435,12 +455,12 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                         if (value == null) return;
                         setDialogState(() => selectedCategory = value);
                       },
-                      decoration: const InputDecoration(labelText: 'Category'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelCategory),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       initialValue: selectedUnit,
-                      items: const ['kg', 'quintal', 'ton', 'packet', 'piece']
+                      items:  [context.l10n.weightUnitKg, context.l10n.weightUnitQuintal, context.l10n.weightUnitTon, context.l10n.weightUnitBag, context.l10n.weightUnitPiece]
                           .map(
                             (u) => DropdownMenuItem<String>(
                               value: u,
@@ -452,13 +472,13 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                         if (value == null) return;
                         setDialogState(() => selectedUnit = value);
                       },
-                      decoration: const InputDecoration(labelText: 'Unit'),
+                      decoration: InputDecoration(labelText: context.l10n.addProductLabelUnit),
                     ),
                     const SizedBox(height: 8),
                     CheckboxListTile(
                       value: isOrganic,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Organic product'),
+                      title: Text(context.l10n.addProductCheckboxOrganic),
                       onChanged: (value) {
                         setDialogState(() => isOrganic = value ?? false);
                       },
@@ -476,8 +496,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                       icon: const Icon(Icons.photo_library_outlined),
                       label: Text(
                         selectedImageFile == null
-                            ? 'Add Product Photo'
-                            : 'Change Product Photo',
+                            ? context.l10n.addProductBtnAddPhoto
+                            : context.l10n.addProductBtnChangePhoto,
                       ),
                     ),
                     if (selectedImageFile != null) ...[
@@ -496,7 +516,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                                 height: 120,
                                 color: AppColors.greyLight,
                                 alignment: Alignment.center,
-                                child: const Text('Preview unavailable'),
+                                child: Text(context.l10n.imgPreviewUnavailable),
                               );
                             },
                           ),
@@ -510,7 +530,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.btnCancel),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
@@ -523,8 +543,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
 
                           if (name.isEmpty || price == null || stock == null) {
                             ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text('Name, price and stock are required.'),
+                              SnackBar(
+                                content: Text(context.l10n.addProductMsgRequired),
                               ),
                             );
                             return;
@@ -550,14 +570,14 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                             if (!dialogContext.mounted) return;
                             Navigator.pop(dialogContext);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Product added successfully.'),
+                              SnackBar(
+                                content: Text(context.l10n.addProductMsgSuccess),
                               ),
                             );
                           } catch (e) {
                             if (!dialogContext.mounted) return;
                             ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(content: Text('Unable to add product: $e')),
+                              SnackBar(content: Text(context.l10n.addProductMsgError(e.toString()))),
                             );
                           } finally {
                             if (dialogContext.mounted) {
@@ -565,7 +585,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                             }
                           }
                         },
-                  child: Text(isSaving ? 'Saving...' : 'Save'),
+                  child: Text(isSaving ? context.l10n.btnSaving : context.l10n.btnSave),
                 ),
               ],
             );
@@ -577,7 +597,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
 
   void _showProductDetails(Product product) {
     showDialog<void>(
-      context: context,
+      context: this.context,
       builder: (context) => AlertDialog(
         title: Text(product.name),
         content: Column(
@@ -595,7 +615,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(context.l10n.btnClose),
           ),
         ],
       ),
@@ -605,7 +625,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   Widget _emptyState() {
     return Center(
       child: Text(
-        'No products found',
+        context.l10n.marketEmptyState,
         style: GoogleFonts.poppins(
           color: AppColors.textSecondary,
           fontSize: 14.sp,
