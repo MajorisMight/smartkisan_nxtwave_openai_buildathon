@@ -5,6 +5,8 @@ import '../constants/app_colors.dart';
 import '../constants/crop_options.dart';
 import '../models/crop.dart';
 import '../providers/crop_provider.dart';
+import '../services/activity_logs_service.dart';
+import '../services/crop_actions_service.dart';
 import '../services/session_service.dart';
 import 'crops_screen.dart';
 import '../app_extensions.dart';
@@ -195,13 +197,25 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                crop.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      crop.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    color: AppColors.textSecondary,
+                    onPressed: () => _deleteCrop(crop),
+                    tooltip: 'Delete crop',
+                  ),
+                ],
               ),
 
               const SizedBox(height: 10),
@@ -227,6 +241,25 @@ class _CropListScreenState extends ConsumerState<CropListScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteCrop(Crop crop) async {
+    final farmId = int.tryParse(crop.id);
+    if (farmId == null) return;
+
+    try {
+      await ref.read(cropListNotifierProvider.notifier).deleteCrop(
+            farmId: farmId,
+          );
+      await ActivityLogsService.clearCacheForFarm(farmId);
+      await CropActionsService.clearCacheForFarm(farmId);
+      ref.invalidate(cropsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete crop. $e')),
+      );
+    }
   }
 
   Widget _buildEmptyState() {

@@ -275,9 +275,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
         'language_pref': state.language,
       });
 
-      // Handle GPS coordinates
-      final gpsLon = state.gpsLon ?? 0.0;
-      final gpsLat = state.gpsLat ?? 0.0;
+      // Handle GPS coordinates (only set location when we actually have them)
+      final gpsLon = state.gpsLon;
+      final gpsLat = state.gpsLat;
+      final location =
+          (gpsLon != null && gpsLat != null)
+              ? 'SRID=4326;POINT($gpsLon $gpsLat)'
+              : null;
 
       // Save to farms table
       final farmResponse = await supabase.from('farms').upsert({
@@ -290,7 +294,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
         'water_sources': state.waterSources,
         'is_in_coop': state.isMember,
         'coop_name': state.groupName,
-        'location': 'POINT($gpsLon $gpsLat)',
+        if (location != null) 'location': location,
       }).select('farm_id').single();
       
       final farmId = farmResponse['farm_id'];

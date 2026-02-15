@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -190,6 +191,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final districtController = TextEditingController(text: profile.district);
     final stateController = TextEditingController(text: profile.state);
     final formKey = GlobalKey<FormState>();
+    double? selectedLatitude;
+    double? selectedLongitude;
+    bool isFetchingLocation = false;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -199,65 +203,148 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 20.w,
-            right: 20.w,
-            top: 16.h,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.h,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.l10n.profileTitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 14.h),
-                _buildEditField(nameController, context.l10n.profileLabelName),
-                SizedBox(height: 10.h),
-                _buildEditField(villageController, context.l10n.profileLabelVillage),
-                SizedBox(height: 10.h),
-                _buildEditField(districtController, context.l10n.profileLabelDistrict),
-                SizedBox(height: 10.h),
-                _buildEditField(stateController, context.l10n.profileLabelState),
-                SizedBox(height: 16.h),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (!(formKey.currentState?.validate() ?? false)) return;
-                      try {
-                        await ref.read(profileUpdateProvider.notifier).updateBasicInfo(
-                              name: nameController.text,
-                              village: villageController.text,
-                              district: districtController.text,
-                              farmState: stateController.text,
-                            );
-                        if (!mounted) return;
-                        Navigator.of(context).pop();
-                      } catch (_) {}
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: AppColors.white,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20.w,
+                right: 20.w,
+                top: 16.h,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.h,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.l10n.profileTitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                    child: Text(context.l10n.btnSave),
-                  ),
+                    SizedBox(height: 14.h),
+                    _buildEditField(nameController, context.l10n.profileLabelName),
+                    SizedBox(height: 10.h),
+                    _buildEditField(villageController, context.l10n.profileLabelVillage),
+                    SizedBox(height: 10.h),
+                    _buildEditField(districtController, context.l10n.profileLabelDistrict),
+                    SizedBox(height: 10.h),
+                    _buildEditField(stateController, context.l10n.profileLabelState),
+                    SizedBox(height: 10.h),
+                    OutlinedButton.icon(
+                      onPressed: isFetchingLocation
+                          ? null
+                          : () async {
+                              setSheetState(() => isFetchingLocation = true);
+                              final coords = await _getCurrentCoordinates();
+                              if (!ctx.mounted) return;
+                              setSheetState(() => isFetchingLocation = false);
+                              if (coords == null) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not fetch GPS location'),
+                                  ),
+                                );
+                                return;
+                              }
+                              setSheetState(() {
+                                selectedLatitude = coords.$1;
+                                selectedLongitude = coords.$2;
+                              });
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Location updated from GPS'),
+                                ),
+                              );
+                            },
+                      icon: Icon(
+                        Icons.my_location,
+                        size: 16.sp,
+                        color: AppColors.primaryGreen,
+                      ),
+                      label: Text(
+                        isFetchingLocation
+                            ? 'Fetching location...'
+                            : 'Use current location',
+                        style: GoogleFonts.poppins(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (selectedLatitude != null && selectedLongitude != null) ...[
+                      SizedBox(height: 8.h),
+                      Text(
+                        'GPS set: ${selectedLatitude!.toStringAsFixed(5)}, ${selectedLongitude!.toStringAsFixed(5)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 16.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (!(formKey.currentState?.validate() ?? false)) return;
+                          try {
+                            await ref.read(profileUpdateProvider.notifier).updateBasicInfo(
+                                  name: nameController.text,
+                                  village: villageController.text,
+                                  district: districtController.text,
+                                  farmState: stateController.text,
+                                  latitude: selectedLatitude,
+                                  longitude: selectedLongitude,
+                                );
+                            if (!ctx.mounted) return;
+                            Navigator.of(ctx).pop();
+                          } catch (_) {}
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: AppColors.white,
+                        ),
+                        child: Text(context.l10n.btnSave),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  Future<(double, double)?> _getCurrentCoordinates() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return null;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      return (position.latitude, position.longitude);
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildEditField(

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -152,6 +153,11 @@ class CommunityActionsNotifier extends StateNotifier<AsyncValue<void>> {
         }
         urls.add(uploadedUrl);
       }
+      final position = await _tryGetCurrentPosition();
+      final locationPoint = position == null
+          ? null
+          : _toPostgisPoint(position.latitude, position.longitude);
+      final isPest = tags.any((tag) => tag.trim().toLowerCase() == 'pest');
 
       await supabase.from('posts').insert({
         'farmer_id': user.id,
@@ -160,6 +166,9 @@ class CommunityActionsNotifier extends StateNotifier<AsyncValue<void>> {
         'content': content,
         'tags': tags,
         'image_urls': urls,
+        if (locationPoint != null) 'location': locationPoint,
+        if (isPest && position != null) 'latitude': position.latitude,
+        if (isPest && position != null) 'longitude': position.longitude,
       });
       ref.invalidate(communityPostsProvider);
       state = const AsyncValue.data(null);
@@ -235,6 +244,25 @@ class CommunityActionsNotifier extends StateNotifier<AsyncValue<void>> {
     });
   }
 
+  Future<void> deletePost({
+    required String postId,
+  }) async {
+    final supabase = ref.read(supabaseClientProvider);
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await supabase
+          .from('posts')
+          .delete()
+          .eq('id', postId)
+          .eq('farmer_id', user.id);
+
+      ref.invalidate(communityPostsProvider);
+    });
+  }
+
   Future<String?> _uploadPostImage({
     required SupabaseClient supabase,
     required String userId,
@@ -291,6 +319,35 @@ class CommunityActionsNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (_) {
       return source;
     }
+  }
+
+  Future<Position?> _tryGetCurrentPosition() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return null;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      return position;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _toPostgisPoint(double latitude, double longitude) {
+    return 'SRID=4326;POINT($longitude $latitude)';
   }
 }
 

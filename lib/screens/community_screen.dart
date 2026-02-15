@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import '../app_extensions.dart';
 import '../constants/app_colors.dart';
 import '../models/community_post.dart';
 import '../providers/community_provider.dart';
 import '../services/storage_service.dart';
+import 'add_community_post_screen.dart';
 
 class CommunityScreen extends ConsumerStatefulWidget {
   const CommunityScreen({super.key});
@@ -82,8 +84,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     return ListView.builder(
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       itemCount: filteredPosts.length,
-                      itemBuilder: (context, index) =>
-                          _buildPostCard(filteredPosts[index]),
+                      itemBuilder:
+                          (context, index) =>
+                              _buildPostCard(filteredPosts[index]),
                     );
                   },
                 ),
@@ -93,7 +96,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showCreatePostDialog,
+        onPressed: _openCreatePostPage,
         backgroundColor: AppColors.primaryGreen,
         child: const Icon(Icons.add, color: AppColors.white),
       ),
@@ -168,25 +171,27 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           decoration: InputDecoration(
             hintText: context.l10n.commSearchHint,
             prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-            suffixIcon: query.trim().isEmpty
-                ? null
-                : IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: AppColors.textSecondary,
+            suffixIcon:
+                query.trim().isEmpty
+                    ? null
+                    : IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textSecondary,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        ref.read(searchQueryProvider.notifier).state = '';
+                      },
                     ),
-                    onPressed: () {
-                      _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).state = '';
-                    },
-                  ),
             border: InputBorder.none,
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 12.h,
+            ),
           ),
-        ),
       ),
-    );
+    ));
   }
 
   Widget _buildCategories() {
@@ -201,7 +206,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
           final category = _categories[index];
           final isSelected = selected == category;
           return GestureDetector(
-            onTap: () => ref.read(postCategoryProvider.notifier).state = category,
+            onTap:
+                () => ref.read(postCategoryProvider.notifier).state = category,
             child: Container(
               margin: EdgeInsets.only(right: 12.w),
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
@@ -222,8 +228,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
-                    color:
-                        isSelected ? AppColors.white : AppColors.textPrimary,
+                    color: isSelected ? AppColors.white : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -235,6 +240,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   }
 
   Widget _buildPostCard(CommunityPost post) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     final avatar = post.farmerImageUrl;
     final hasAvatar = avatar != null && avatar.trim().isNotEmpty;
     return Container(
@@ -259,10 +265,8 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               children: [
                 CircleAvatar(
                   radius: 20.r,
-                  backgroundImage:
-                      hasAvatar ? NetworkImage(avatar) : null,
-                  child:
-                      hasAvatar ? null : const Icon(Icons.person_outline),
+                  backgroundImage: hasAvatar ? NetworkImage(avatar) : null,
+                  child: hasAvatar ? null : const Icon(Icons.person_outline),
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
@@ -287,12 +291,27 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ],
                   ),
                 ),
-                Text(
-                  _getTimeAgo(post.createdAt),
-                  style: GoogleFonts.poppins(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondary,
-                  ),
+                Row(
+                  children: [
+                    if (currentUserId != null &&
+                        currentUserId == post.farmerId)
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          size: 18.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                        tooltip: 'Delete post',
+                        onPressed: () => _deletePost(post),
+                      ),
+                    Text(
+                      _getTimeAgo(post.createdAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.sp,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -339,27 +358,28 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 4.h,
-                    children: post.tags
-                        .map(
-                          (tag) => Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 4.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.greyLight,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.sp,
-                                color: AppColors.textSecondary,
+                    children:
+                        post.tags
+                            .map(
+                              (tag) => Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.greyLight,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Text(
+                                  '#$tag',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.sp,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                            )
+                            .toList(),
                   ),
                 ],
                 if (post.images.isNotEmpty) ...[
@@ -412,6 +432,20 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _deletePost(CommunityPost post) async {
+    try {
+      await ref.read(communityActionsProvider.notifier).deletePost(
+            postId: post.id,
+          );
+      ref.invalidate(communityPostsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete post. $e')),
+      );
+    }
   }
 
   Widget _actionButton(
@@ -599,6 +633,23 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     );
   }
 
+  Future<void> _openCreatePostPage() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder:
+            (_) => AddCommunityPostScreen(
+              categories: _categories.where((e) => e != 'All').toList(),
+            ),
+      ),
+    );
+    if (created == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post created successfully.')),
+      );
+    }
+  }
+
   Future<void> _showCommentsDialog(CommunityPost post) async {
     final inputController = TextEditingController();
     await showModalBottomSheet<void>(
@@ -625,8 +676,9 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 Expanded(
                   child: Consumer(
                     builder: (context, ref, _) {
-                      final commentsAsync =
-                          ref.watch(commentsByPostProvider(post.id));
+                      final commentsAsync = ref.watch(
+                        commentsByPostProvider(post.id),
+                      );
                       return commentsAsync.when(
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
@@ -639,16 +691,19 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                             itemCount: comments.length,
                             itemBuilder: (context, index) {
                               final c = comments[index];
-                              final hasAvatar = c.farmerImageUrl != null &&
+                              final hasAvatar =
+                                  c.farmerImageUrl != null &&
                                   c.farmerImageUrl!.trim().isNotEmpty;
                               return ListTile(
                                 leading: CircleAvatar(
-                                  backgroundImage: hasAvatar
-                                      ? NetworkImage(c.farmerImageUrl!)
-                                      : null,
-                                  child: hasAvatar
-                                      ? null
-                                      : const Icon(Icons.person_outline),
+                                  backgroundImage:
+                                      hasAvatar
+                                          ? NetworkImage(c.farmerImageUrl!)
+                                          : null,
+                                  child:
+                                      hasAvatar
+                                          ? null
+                                          : const Icon(Icons.person_outline),
                                 ),
                                 title: Text(c.farmerName),
                                 subtitle: Text(c.content),
@@ -665,8 +720,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                   ),
                 ),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       Expanded(

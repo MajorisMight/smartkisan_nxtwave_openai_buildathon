@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import '../app_extensions.dart';
 import '../constants/app_colors.dart';
 import '../models/product.dart';
 import '../providers/marketplace_provider.dart';
 import '../services/storage_service.dart';
+import 'add_market_listing_screen.dart';
 
 class MarketplaceScreen extends ConsumerStatefulWidget {
   const MarketplaceScreen({super.key});
@@ -79,7 +81,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               _buildCategories(),
               Expanded(
                 child: productsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading:
+                      () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => _errorState('Unable to load products.\n$e'),
                   data: (_) {
                     if (filteredProducts.isEmpty) {
@@ -99,7 +102,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddProductDialog,
+        onPressed: _openAddMarketListingPage,
         backgroundColor: AppColors.primaryGreen,
         child: const Icon(Icons.add, color: AppColors.white),
       ),
@@ -186,8 +189,10 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             hintText: context.l10n.marketSearchHint,
             prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
             border: InputBorder.none,
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 12.h,
+            ),
           ),
         ),
       ),
@@ -207,7 +212,10 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
           final isSelected = selected == category;
 
           return GestureDetector(
-            onTap: () => ref.read(selectedCategoryProvider.notifier).state = category,
+            onTap:
+                () =>
+                    ref.read(selectedCategoryProvider.notifier).state =
+                        category,
             child: Container(
               margin: EdgeInsets.only(right: 12.w),
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
@@ -228,8 +236,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
-                    color:
-                        isSelected ? AppColors.white : AppColors.textPrimary,
+                    color: isSelected ? AppColors.white : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -241,6 +248,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   }
 
   Widget _buildProductCard(Product product, BuildContext context) {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     final imageUrl = product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -266,18 +274,22 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             child: SizedBox(
               height: 180.h,
               width: double.infinity,
-              child: imageUrl == null || imageUrl.isEmpty
-                  ? Image.asset('assets/images/farmer.jpg', fit: BoxFit.cover)
-                  : Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) {
-                        return Image.asset(
-                          'assets/images/farmer.jpg',
-                          fit: BoxFit.cover,
-                        );
-                      },
-                    ),
+              child:
+                  imageUrl == null || imageUrl.isEmpty
+                      ? Image.asset(
+                        'assets/images/farmer.jpg',
+                        fit: BoxFit.cover,
+                      )
+                      : Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return Image.asset(
+                            'assets/images/farmer.jpg',
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      ),
             ),
           ),
           Padding(
@@ -315,6 +327,17 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                             color: AppColors.organic,
                           ),
                         ),
+                      ),
+                    if (currentUserId != null &&
+                        currentUserId == product.farmerId)
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          size: 18.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                        tooltip: 'Delete listing',
+                        onPressed: () => _deleteProduct(product),
                       ),
                   ],
                 ),
@@ -593,6 +616,41 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         );
       },
     );
+  }
+
+  Future<void> _deleteProduct(Product product) async {
+    try {
+      debugPrint('UI delete tap: productId=${product.id}');
+      await ref.read(marketplaceActionsProvider.notifier).deleteProduct(
+            productId: product.id,
+            farmerId: product.farmerId,
+          );
+      ref.invalidate(productsProvider);
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('UI delete failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete listing. $e')),
+      );
+    }
+  }
+
+  Future<void> _openAddMarketListingPage() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder:
+            (_) => AddMarketListingScreen(
+              categories: _categories.where((e) => e != 'All').toList(),
+            ),
+      ),
+    );
+    if (created == true) {
+      ref.invalidate(productsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product added successfully.')),
+      );
+    }
   }
 
   void _showProductDetails(Product product) {

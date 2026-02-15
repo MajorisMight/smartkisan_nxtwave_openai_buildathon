@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:kisan/providers/profile_provider.dart';
 import '../models/crop.dart'; // Make sure your Crop model can be created from a map
 
@@ -72,6 +73,10 @@ class CropListNotifier extends StateNotifier<AsyncValue<List<Crop>>> {
     final userId = supabase.auth.currentUser!.id;
 
     try {
+      final position = await _tryGetCurrentPosition();
+      final locationPoint = position == null
+          ? null
+          : _toPostgisPoint(position.latitude, position.longitude);
       // stage kept in signature for UI compatibility; farms schema doesn't use it.
       final inserted = await supabase
           .from('farms')
@@ -81,6 +86,7 @@ class CropListNotifier extends StateNotifier<AsyncValue<List<Crop>>> {
             'crop_type': cropType,
             'sown_date': sowDate.toIso8601String(),
             'area': area,
+            if (locationPoint != null) 'location': locationPoint,
           })
           .select('farm_id')
           .single();
@@ -92,6 +98,55 @@ class CropListNotifier extends StateNotifier<AsyncValue<List<Crop>>> {
       print('Error adding crop: $e');
       rethrow;
     }
+  }
+
+  Future<void> deleteCrop({
+    required int farmId,
+  }) async {
+    final supabase = ref.watch(supabaseClientProvider);
+    final userId = supabase.auth.currentUser!.id;
+
+    try {
+      await supabase
+          .from('farms')
+          .delete()
+          .eq('farm_id', farmId)
+          .eq('farmer_id', userId);
+      ref.invalidate(cropsProvider);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error deleting crop: $e');
+      rethrow;
+    }
+  }
+
+  Future<Position?> _tryGetCurrentPosition() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return null;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      return position;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _toPostgisPoint(double latitude, double longitude) {
+    return 'SRID=4326;POINT($longitude $latitude)';
   }
 }
 

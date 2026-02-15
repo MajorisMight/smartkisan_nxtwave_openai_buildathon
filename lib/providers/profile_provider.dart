@@ -225,6 +225,8 @@ class ProfileUpdateNotifier extends StateNotifier<AsyncValue<void>> {
     required String village,
     required String district,
     required String farmState,
+    double? latitude,
+    double? longitude,
   }) async {
     final supabase = ref.read(supabaseClientProvider);
     final user = supabase.auth.currentUser;
@@ -234,11 +236,16 @@ class ProfileUpdateNotifier extends StateNotifier<AsyncValue<void>> {
 
     state = const AsyncValue.loading();
     try {
+      final locationPoint = _toPostgisPoint(
+        latitude: latitude,
+        longitude: longitude,
+      );
       await supabase.from('farmers').update({
         'name': name.trim(),
         'village': village.trim(),
         'district': district.trim(),
         'state': farmState.trim(),
+        if (locationPoint != null) 'location': locationPoint,
       }).eq('id', user.id);
 
       ref.invalidate(farmerProfileProvider);
@@ -249,6 +256,16 @@ class ProfileUpdateNotifier extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       rethrow;
     }
+  }
+
+  String? _toPostgisPoint({
+    required double? latitude,
+    required double? longitude,
+  }) {
+    if (latitude == null || longitude == null) return null;
+    if (latitude < -90 || latitude > 90) return null;
+    if (longitude < -180 || longitude > 180) return null;
+    return 'SRID=4326;POINT($longitude $latitude)';
   }
 
   Future<void> changePassword({

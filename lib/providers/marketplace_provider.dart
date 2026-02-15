@@ -93,6 +93,49 @@ class MarketplaceActionsNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> deleteProduct({
+    required String productId,
+    required String farmerId,
+  }) async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+    if (user.id != farmerId) {
+      debugPrint(
+        'Marketplace delete blocked: user=${user.id} productFarmer=$farmerId',
+      );
+      throw Exception('Not authorized');
+    }
+
+    state = const AsyncValue.loading();
+    try {
+      debugPrint('Marketplace delete start: productId=$productId user=${user.id}');
+      final deleted = await supabase
+          .from('products')
+          .delete()
+          .eq('id', productId)
+          .eq('farmer_id', user.id)
+          .select('id');
+
+      final deletedList = deleted is List ? deleted : const [];
+      if (deletedList.isEmpty) {
+        debugPrint(
+          'Marketplace delete no-op: productId=$productId user=${user.id}',
+        );
+        throw Exception('Delete failed: no matching row');
+      }
+
+      debugPrint(
+        'Marketplace delete success: productId=$productId rows=${deletedList.length}',
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      debugPrint('Marketplace delete failed: $e');
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<String?> _uploadProductImage({
     required SupabaseClient supabase,
     required String userId,
