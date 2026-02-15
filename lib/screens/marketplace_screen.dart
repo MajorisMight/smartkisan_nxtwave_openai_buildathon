@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io';
 
 import '../constants/app_colors.dart';
 import '../models/product.dart';
 import '../providers/marketplace_provider.dart';
-import '../services/storage_service.dart';
+import 'add_market_listing_screen.dart';
 
 class MarketplaceScreen extends ConsumerStatefulWidget {
   const MarketplaceScreen({super.key});
@@ -18,7 +17,6 @@ class MarketplaceScreen extends ConsumerStatefulWidget {
 
 class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final StorageService _storageService = StorageService();
 
   final List<String> _categories = const [
     'All',
@@ -59,7 +57,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               _buildCategories(),
               Expanded(
                 child: productsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading:
+                      () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => _errorState('Unable to load products.\n$e'),
                   data: (_) {
                     if (filteredProducts.isEmpty) {
@@ -68,8 +67,9 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                     return ListView.builder(
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) =>
-                          _buildProductCard(filteredProducts[index]),
+                      itemBuilder:
+                          (context, index) =>
+                              _buildProductCard(filteredProducts[index]),
                     );
                   },
                 ),
@@ -79,7 +79,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddProductDialog,
+        onPressed: _openAddMarketListingPage,
         backgroundColor: AppColors.primaryGreen,
         child: const Icon(Icons.add, color: AppColors.white),
       ),
@@ -164,10 +164,15 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
           controller: _searchController,
           decoration: InputDecoration(
             hintText: 'Search products...',
-            prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+            prefixIcon: const Icon(
+              Icons.search,
+              color: AppColors.textSecondary,
+            ),
             border: InputBorder.none,
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 12.h,
+            ),
           ),
         ),
       ),
@@ -187,7 +192,10 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
           final isSelected = selected == category;
 
           return GestureDetector(
-            onTap: () => ref.read(selectedCategoryProvider.notifier).state = category,
+            onTap:
+                () =>
+                    ref.read(selectedCategoryProvider.notifier).state =
+                        category,
             child: Container(
               margin: EdgeInsets.only(right: 12.w),
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
@@ -208,8 +216,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
-                    color:
-                        isSelected ? AppColors.white : AppColors.textPrimary,
+                    color: isSelected ? AppColors.white : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -221,7 +228,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   }
 
   Widget _buildProductCard(Product product) {
-    final imageUrl = product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
+    final imageUrl =
+        product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
@@ -246,18 +254,22 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             child: SizedBox(
               height: 180.h,
               width: double.infinity,
-              child: imageUrl == null || imageUrl.isEmpty
-                  ? Image.asset('assets/images/farmer.jpg', fit: BoxFit.cover)
-                  : Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) {
-                        return Image.asset(
-                          'assets/images/farmer.jpg',
-                          fit: BoxFit.cover,
-                        );
-                      },
-                    ),
+              child:
+                  imageUrl == null || imageUrl.isEmpty
+                      ? Image.asset(
+                        'assets/images/farmer.jpg',
+                        fit: BoxFit.cover,
+                      )
+                      : Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return Image.asset(
+                            'assets/images/farmer.jpg',
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      ),
             ),
           ),
           Padding(
@@ -370,235 +382,51 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     );
   }
 
-  Future<void> _showAddProductDialog() async {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final priceController = TextEditingController();
-    final stockController = TextEditingController();
-
-    String selectedCategory = _categories[1];
-    String selectedUnit = 'kg';
-    bool isOrganic = false;
-    bool isSaving = false;
-    File? selectedImageFile;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Add Product'),
-              content: SizedBox(
-                width: 320,
-                child: SingleChildScrollView(
-                  child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Description'),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: priceController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Price'),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: stockController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Stock Quantity'),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedCategory,
-                      items: _categories
-                          .where((e) => e != 'All')
-                          .map(
-                            (c) => DropdownMenuItem<String>(
-                              value: c,
-                              child: Text(c),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setDialogState(() => selectedCategory = value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Category'),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedUnit,
-                      items: const ['kg', 'quintal', 'ton', 'packet', 'piece']
-                          .map(
-                            (u) => DropdownMenuItem<String>(
-                              value: u,
-                              child: Text(u),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setDialogState(() => selectedUnit = value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Unit'),
-                    ),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      value: isOrganic,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Organic product'),
-                      onChanged: (value) {
-                        setDialogState(() => isOrganic = value ?? false);
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: isSaving
-                          ? null
-                          : () async {
-                              final file =
-                                  await _storageService.pickAndCompressImage();
-                              if (file == null) return;
-                              setDialogState(() => selectedImageFile = file);
-                            },
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(
-                        selectedImageFile == null
-                            ? 'Add Product Photo'
-                            : 'Change Product Photo',
-                      ),
-                    ),
-                    if (selectedImageFile != null) ...[
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        height: 120,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            selectedImageFile!,
-                            fit: BoxFit.cover,
-                            cacheWidth: 720,
-                            filterQuality: FilterQuality.low,
-                            errorBuilder: (_, __, ___) {
-                              return Container(
-                                height: 120,
-                                color: AppColors.greyLight,
-                                alignment: Alignment.center,
-                                child: const Text('Preview unavailable'),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          final name = nameController.text.trim();
-                          final description = descriptionController.text.trim();
-                          final price = double.tryParse(priceController.text.trim());
-                          final stock = double.tryParse(stockController.text.trim());
-
-                          if (name.isEmpty || price == null || stock == null) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text('Name, price and stock are required.'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          setDialogState(() => isSaving = true);
-                          try {
-                            await ref
-                                .read(marketplaceActionsProvider.notifier)
-                                .addProduct(
-                                  name: name,
-                                  description: description,
-                                  price: price,
-                                  category: selectedCategory,
-                                  unit: selectedUnit,
-                                  stockQuantity: stock,
-                                  isOrganic: isOrganic,
-                                  imageFile: selectedImageFile,
-                                );
-
-                            ref.invalidate(productsProvider);
-
-                            if (!dialogContext.mounted) return;
-                            Navigator.pop(dialogContext);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Product added successfully.'),
-                              ),
-                            );
-                          } catch (e) {
-                            if (!dialogContext.mounted) return;
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(content: Text('Unable to add product: $e')),
-                            );
-                          } finally {
-                            if (dialogContext.mounted) {
-                              setDialogState(() => isSaving = false);
-                            }
-                          }
-                        },
-                  child: Text(isSaving ? 'Saving...' : 'Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _openAddMarketListingPage() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder:
+            (_) => AddMarketListingScreen(
+              categories: _categories.where((e) => e != 'All').toList(),
+            ),
+      ),
     );
+    if (created == true) {
+      ref.invalidate(productsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product added successfully.')),
+      );
+    }
   }
 
   void _showProductDetails(Product product) {
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(product.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Price: Rs ${product.price.toStringAsFixed(2)}/${product.unit}'),
-            Text('Seller: ${product.farmerName ?? 'Unknown'}'),
-            Text('Location: ${product.location}'),
-            Text(
-              'Stock: ${product.stockQuantity.toStringAsFixed(1)} ${product.unit}',
+      builder:
+          (context) => AlertDialog(
+            title: Text(product.name),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Price: Rs ${product.price.toStringAsFixed(2)}/${product.unit}',
+                ),
+                Text('Seller: ${product.farmerName ?? 'Unknown'}'),
+                Text('Location: ${product.location}'),
+                Text(
+                  'Stock: ${product.stockQuantity.toStringAsFixed(1)} ${product.unit}',
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

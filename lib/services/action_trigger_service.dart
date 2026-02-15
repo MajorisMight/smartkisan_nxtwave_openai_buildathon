@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/crop.dart';
@@ -66,11 +69,16 @@ class LocalActionTriggerResult {
 
 class ActionTriggerService {
   static const int _llmScoreThreshold = 3;
+  static const int _advanceDaysMin = 2;
+  static const int _advanceDaysMax = 3;
+
+  static Map<String, _CropProfileData>? _cropProfilesCache;
 
   static Future<LocalActionTriggerResult> generateLocalTriggers({
     required Crop crop,
   }) async {
     final locationContext = await _resolveLocationContext(crop.location);
+    final profile = await _loadProfileForCrop(crop);
 
     WeatherData? weather;
     try {
@@ -81,7 +89,7 @@ class ActionTriggerService {
 
     final signals = <ActionSignal>[];
 
-    final timelineSignals = _buildTimelineSignals(crop);
+    final timelineSignals = _buildTimelineSignals(crop: crop, profile: profile);
     signals.addAll(timelineSignals);
 
     final weatherSignals = _buildWeatherSignals(weather);
@@ -111,7 +119,9 @@ class ActionTriggerService {
         'crop_id': crop.id,
         'crop_name': crop.name,
         'location': locationContext,
+        'days_since_sowing': _daysSinceSowing(crop),
         'trigger_score': triggerScore,
+        if (profile != null) 'crop_profile': profile.toMap(),
         'signals':
             signals
                 .map(
@@ -129,70 +139,91 @@ class ActionTriggerService {
     );
   }
 
-  static List<ActionSignal> _buildTimelineSignals(Crop crop) {
-    final signals = <ActionSignal>[];
-    final now = DateTime.now();
-    final daysSinceSowing = now.difference(crop.sowDate).inDays;
-    final irrigationGapDays = _daysSinceLastIrrigation(crop);
+  static List<ActionSignal> _buildTimelineSignals({
+    required Crop crop,
+    required _CropProfileData? profile,
+  }) {
+    if (profile == null) return const [];
 
-    if (irrigationGapDays >= 8) {
+    final signals = <ActionSignal>[];
+    final daysSinceSowing = _daysSinceSowing(crop);
+
+    final nextStage = _nextGrowthStage(profile.growthStages, daysSinceSowing);
+    if (nextStage != null) {
+      final daysUntilNextStage = nextStage.startDay - daysSinceSowing;
+      if (_isInAdvanceWindow(daysUntilNextStage)) {
+        signals.add(
+          ActionSignal(
+            type: 'stage_change_advance_alert',
+            source: 'crop_timeline',
+            severity: ActionSignalSeverity.medium,
+            title: 'Stage change expected soon',
+            summary:
+                'Crop may enter ${nextStage.stage} in about $daysUntilNextStage days.',
+            payload: <String, dynamic>{
+              'crop_id': crop.id,
+              'days_since_sowing': daysSinceSowing,
+              'next_stage': nextStage.stage,
+              'next_stage_start_day': nextStage.startDay,
+              'days_to_next_stage': daysUntilNextStage,
+              'recommended_action':
+                  'Prepare stage-specific inputs and field operations before transition.',
+            },
+          ),
+        );
+      }
+    }
+
+    final nextCriticalIrrigationDay = profile.criticalIrrigationDays
+        .where((day) => day >= daysSinceSowing)
+        .cast<int?>()
+        .firstWhere((day) => day != null, orElse: () => null);
+
+    if (nextCriticalIrrigationDay != null) {
+      final daysUntilCriticalIrrigation =
+          nextCriticalIrrigationDay - daysSinceSowing;
+      if (_isInAdvanceWindow(daysUntilCriticalIrrigation)) {
+        signals.add(
+          ActionSignal(
+            type: 'irrigation_advance_alert',
+            source: 'crop_timeline',
+            severity: ActionSignalSeverity.high,
+            title: 'Critical irrigation window approaching',
+            summary:
+                'Critical irrigation day is in about $daysUntilCriticalIrrigation days (day $nextCriticalIrrigationDay).',
+            payload: <String, dynamic>{
+              'crop_id': crop.id,
+              'days_since_sowing': daysSinceSowing,
+              'critical_irrigation_day': nextCriticalIrrigationDay,
+              'days_to_critical_irrigation': daysUntilCriticalIrrigation,
+              'method': profile.irrigationMethod,
+              'recommended_action':
+                  'Check soil moisture and prepare irrigation to avoid stress at the critical stage.',
+            },
+          ),
+        );
+      }
+    }
+
+    final harvestWindowStartDay =
+        profile.totalDurationDays + profile.harvestStartBufferDays;
+    final daysToHarvestWindowStart = harvestWindowStartDay - daysSinceSowing;
+    if (_isInAdvanceWindow(daysToHarvestWindowStart)) {
       signals.add(
         ActionSignal(
-          type: 'irrigation_gap_alert',
+          type: 'harvest_window_advance_alert',
           source: 'crop_timeline',
-          severity:
-              irrigationGapDays >= 12
-                  ? ActionSignalSeverity.high
-                  : ActionSignalSeverity.medium,
-          title: 'Irrigation cycle overdue',
-          summary: 'Last irrigation appears $irrigationGapDays days ago.',
+          severity: ActionSignalSeverity.medium,
+          title: 'Harvest window approaching',
+          summary:
+              'Harvest window starts in about $daysToHarvestWindowStart days.',
           payload: <String, dynamic>{
             'crop_id': crop.id,
             'days_since_sowing': daysSinceSowing,
-            'irrigation_gap_days': irrigationGapDays,
+            'harvest_window_start_day': harvestWindowStartDay,
+            'days_to_harvest_window': daysToHarvestWindowStart,
             'recommended_action':
-                'Check soil moisture and irrigate if moisture is low.',
-          },
-        ),
-      );
-    }
-
-    if (daysSinceSowing >= 18 && daysSinceSowing <= 30) {
-      signals.add(
-        ActionSignal(
-          type: 'growth_stage_alert',
-          source: 'crop_timeline',
-          severity: ActionSignalSeverity.medium,
-          title: 'Likely active tillering window',
-          summary: 'Crop is around day $daysSinceSowing from sowing.',
-          payload: <String, dynamic>{
-            'crop_id': crop.id,
-            'current_stage': 'Tillering',
-            'days_to_next_stage': 5,
-            'recommended_action': 'Plan stage-specific nutrient top dressing.',
-          },
-        ),
-      );
-    }
-
-    final harvestEtaDays = 115 - daysSinceSowing;
-    if (harvestEtaDays >= 0 && harvestEtaDays <= 12) {
-      signals.add(
-        ActionSignal(
-          type: 'harvest_window_alert',
-          source: 'crop_timeline',
-          severity:
-              harvestEtaDays <= 7
-                  ? ActionSignalSeverity.high
-                  : ActionSignalSeverity.medium,
-          title: 'Harvest window approaching',
-          summary:
-              'Estimated harvest window starts in about $harvestEtaDays days.',
-          payload: <String, dynamic>{
-            'crop_id': crop.id,
-            'days_to_harvest_window': harvestEtaDays,
-            'recommended_action':
-                'Prepare labor, storage, and harvest logistics for the coming window.',
+                'Prepare labor, tools, transport, and storage before harvest starts.',
           },
         ),
       );
@@ -291,13 +322,21 @@ class ActionTriggerService {
   static List<LocalActionTask> _buildTasks(List<ActionSignal> signals) {
     final tasks =
         signals.map((signal) {
-          final isIrrigation = signal.type == 'irrigation_gap_alert';
+          final isIrrigation = signal.type.contains('irrigation');
+          final isInputTask =
+              signal.type == 'irrigation_advance_alert' ||
+              signal.type == 'temperature_shift_alert';
+
           return LocalActionTask(
             id: '${signal.type}-${signal.source}',
             title: signal.title,
             subtitle: signal.summary,
             isIrrigation: isIrrigation,
             isHighPriority: signal.severity == ActionSignalSeverity.high,
+            requiresInput: isInputTask,
+            inputLabel: isInputTask ? 'Field observation' : null,
+            inputHint: isInputTask ? 'Enter observed value/notes' : null,
+            inputUnit: null,
           );
         }).toList();
 
@@ -344,6 +383,87 @@ class ActionTriggerService {
     return locationLabel.isEmpty ? 'Jaipur, Rajasthan' : locationLabel;
   }
 
+  static Future<_CropProfileData?> _loadProfileForCrop(Crop crop) async {
+    final all = await _loadCropProfiles();
+    final candidates = <String>{
+      _normalizeCropIdentifier(crop.name),
+      _normalizeCropIdentifier(crop.type ?? ''),
+      _normalizeCropIdentifier((crop.type ?? '').split('(').first),
+    }..removeWhere((entry) => entry.isEmpty);
+
+    for (final candidate in candidates) {
+      final profile = all[candidate];
+      if (profile != null) return profile;
+    }
+
+    return null;
+  }
+
+  static Future<Map<String, _CropProfileData>> _loadCropProfiles() async {
+    final existing = _cropProfilesCache;
+    if (existing != null) return existing;
+
+    try {
+      final jsonString = await rootBundle.loadString(
+        'lib/constants/crop_profiles.json',
+      );
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map<String, dynamic>) {
+        _cropProfilesCache = const <String, _CropProfileData>{};
+        return _cropProfilesCache!;
+      }
+
+      final map = <String, _CropProfileData>{};
+      for (final entry in decoded.entries) {
+        final value = entry.value;
+        if (value is! Map) continue;
+
+        final profile = _CropProfileData.fromJson(
+          key: entry.key,
+          json: Map<String, dynamic>.from(value),
+        );
+
+        map[_normalizeCropIdentifier(entry.key)] = profile;
+        map[_normalizeCropIdentifier(profile.name)] = profile;
+      }
+
+      _cropProfilesCache = map;
+      return map;
+    } catch (_) {
+      _cropProfilesCache = const <String, _CropProfileData>{};
+      return _cropProfilesCache!;
+    }
+  }
+
+  static String _normalizeCropIdentifier(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'\(.*\)'), '')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  static _GrowthStageData? _nextGrowthStage(
+    List<_GrowthStageData> stages,
+    int dayNumber,
+  ) {
+    final sorted = [...stages]
+      ..sort((a, b) => a.startDay.compareTo(b.startDay));
+    for (final stage in sorted) {
+      if (stage.startDay > dayNumber) return stage;
+    }
+    return null;
+  }
+
+  static int _daysSinceSowing(Crop crop) {
+    final days = DateTime.now().difference(crop.sowDate).inDays + 1;
+    return days < 1 ? 1 : days;
+  }
+
+  static bool _isInAdvanceWindow(int daysUntilEvent) {
+    return daysUntilEvent >= _advanceDaysMin &&
+        daysUntilEvent <= _advanceDaysMax;
+  }
+
   static int _severityWeight(ActionSignalSeverity severity) {
     switch (severity) {
       case ActionSignalSeverity.low:
@@ -354,17 +474,121 @@ class ActionTriggerService {
         return 3;
     }
   }
+}
 
-  static int _daysSinceLastIrrigation(Crop crop) {
-    final irrigationLogs =
-        crop.actionsHistory.where((action) {
-          final text = '${action.action} ${action.notes}'.toLowerCase();
-          return text.contains('irrigat');
-        }).toList();
-    if (irrigationLogs.isEmpty) {
-      return DateTime.now().difference(crop.sowDate).inDays;
-    }
-    irrigationLogs.sort((a, b) => b.date.compareTo(a.date));
-    return DateTime.now().difference(irrigationLogs.first.date).inDays;
+class _CropProfileData {
+  final String cropId;
+  final String name;
+  final int totalDurationDays;
+  final List<_GrowthStageData> growthStages;
+  final List<int> criticalIrrigationDays;
+  final String irrigationMethod;
+  final int harvestStartBufferDays;
+  final int harvestEndBufferDays;
+
+  const _CropProfileData({
+    required this.cropId,
+    required this.name,
+    required this.totalDurationDays,
+    required this.growthStages,
+    required this.criticalIrrigationDays,
+    required this.irrigationMethod,
+    required this.harvestStartBufferDays,
+    required this.harvestEndBufferDays,
+  });
+
+  factory _CropProfileData.fromJson({
+    required String key,
+    required Map<String, dynamic> json,
+  }) {
+    final growthRaw = json['growth_stages'];
+    final growthStages =
+        growthRaw is List
+            ? growthRaw
+                .whereType<Map>()
+                .map(
+                  (entry) => _GrowthStageData.fromJson(
+                    Map<String, dynamic>.from(entry),
+                  ),
+                )
+                .toList()
+            : const <_GrowthStageData>[];
+
+    final irrigation =
+        json['irrigation'] is Map
+            ? Map<String, dynamic>.from(json['irrigation'] as Map)
+            : const <String, dynamic>{};
+    final criticalDaysRaw = irrigation['critical_days'];
+    final criticalDays =
+        criticalDaysRaw is List
+            ? criticalDaysRaw
+                .map((entry) => (entry as num?)?.toInt())
+                .whereType<int>()
+                .toList()
+            : const <int>[];
+
+    final harvestWindow =
+        json['harvest_window'] is Map
+            ? Map<String, dynamic>.from(json['harvest_window'] as Map)
+            : const <String, dynamic>{};
+
+    return _CropProfileData(
+      cropId: (json['crop_id'] ?? key).toString(),
+      name: (json['name'] ?? key).toString(),
+      totalDurationDays: (json['total_duration_days'] as num?)?.toInt() ?? 110,
+      growthStages: growthStages,
+      criticalIrrigationDays: criticalDays,
+      irrigationMethod: (irrigation['method'] ?? 'Unknown').toString(),
+      harvestStartBufferDays:
+          (harvestWindow['start_buffer_days'] as num?)?.toInt() ?? -5,
+      harvestEndBufferDays:
+          (harvestWindow['end_buffer_days'] as num?)?.toInt() ?? 10,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'crop_id': cropId,
+      'name': name,
+      'total_duration_days': totalDurationDays,
+      'growth_stages':
+          growthStages
+              .map(
+                (stage) => <String, dynamic>{
+                  'stage': stage.stage,
+                  'start_day': stage.startDay,
+                  'end_day': stage.endDay,
+                },
+              )
+              .toList(),
+      'irrigation': <String, dynamic>{
+        'critical_days': criticalIrrigationDays,
+        'method': irrigationMethod,
+      },
+      'harvest_window': <String, dynamic>{
+        'start_buffer_days': harvestStartBufferDays,
+        'end_buffer_days': harvestEndBufferDays,
+      },
+    };
+  }
+}
+
+class _GrowthStageData {
+  final String stage;
+  final int startDay;
+  final int endDay;
+
+  const _GrowthStageData({
+    required this.stage,
+    required this.startDay,
+    required this.endDay,
+  });
+
+  factory _GrowthStageData.fromJson(Map<String, dynamic> json) {
+    return _GrowthStageData(
+      stage: (json['stage'] ?? 'Stage').toString(),
+      startDay: (json['start_day'] as num?)?.toInt() ?? 0,
+      endDay: (json['end_day'] as num?)?.toInt() ?? 0,
+    );
   }
 }
