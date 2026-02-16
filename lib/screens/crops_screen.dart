@@ -553,9 +553,7 @@ class _CropsScreenState extends State<CropsScreen> {
             ),
           ),
           subtitle: Text(
-            task.requiresInput
-                ? '${task.subtitle} • Input required'
-                : task.subtitle,
+            _taskSubtitle(task),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
@@ -577,46 +575,17 @@ class _CropsScreenState extends State<CropsScreen> {
 
     try {
       final farmId = _farmId;
+      List<CropTaskItem> existing = <CropTaskItem>[];
       if (farmId != null) {
-        final existing = await CropActionsService.fetchOpenTasksWithCache(
+        existing = await CropActionsService.fetchOpenTasksWithCache(
           farmId: farmId,
         );
-        if (!mounted) return;
-        if (existing.isNotEmpty) {
-          setState(() {
-            tasks = existing;
-            _isLoadingTasks = false;
-          });
-          return;
-        }
       }
 
       final result = await ActionTriggerService.generateLocalTriggers(
         crop: widget.crop,
       );
       if (!mounted) return;
-
-      setState(() {
-        tasks =
-            result.tasks
-                .map(
-                  (task) => CropTaskItem(
-                    id: task.id,
-                    title: task.title,
-                    subtitle: task.subtitle,
-                    isIrrigation: task.isIrrigation,
-                    isHighPriority: task.isHighPriority,
-                    requiresInput: task.requiresInput,
-                    inputLabel: task.inputLabel,
-                    inputHint: task.inputHint,
-                    inputUnit: task.inputUnit,
-                  ),
-                )
-                .toList();
-        _localThresholdReached = result.shouldQueryLlm;
-        _triggerScore = result.triggerScore;
-        _isLoadingTasks = false;
-      });
 
       final recentLogs =
           cropLogs
@@ -630,20 +599,28 @@ class _CropsScreenState extends State<CropsScreen> {
               )
               .toList();
 
-      final llmApplied = await _loadLlmActionSuggestions(
-        {
-          ...result.llmPayload,
-          'recent_action_logs': recentLogs,
-        },
-        farmId: farmId,
-      );
+      final generated =
+          result.signals.isEmpty
+              ? const <CropTaskItem>[]
+              : await _loadLlmActionSuggestions({
+                ...result.llmPayload,
+                'recent_action_logs': recentLogs,
+              });
 
-      if (!llmApplied && farmId != null && tasks.isNotEmpty) {
+      if (farmId != null && generated.isNotEmpty) {
         await CropActionsService.saveGeneratedTasksIfNew(
           farmId: farmId,
-          tasks: tasks,
+          tasks: generated,
         );
       }
+
+      if (!mounted) return;
+      setState(() {
+        tasks = _mergeAndDedupeTasks([...existing, ...generated]);
+        _localThresholdReached = result.shouldQueryLlm;
+        _triggerScore = result.triggerScore;
+        _isLoadingTasks = false;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -652,10 +629,9 @@ class _CropsScreenState extends State<CropsScreen> {
     }
   }
 
-  Future<bool> _loadLlmActionSuggestions(
-    Map<String, dynamic> llmPayload, {
-    int? farmId,
-  }) async {
+  Future<List<CropTaskItem>> _loadLlmActionSuggestions(
+    Map<String, dynamic> llmPayload,
+  ) async {
     setState(() {
       _isLoadingLlmTasks = true;
     });
@@ -664,7 +640,7 @@ class _CropsScreenState extends State<CropsScreen> {
       final response = await GptService.actionCenterSuggestions(
         contextData: llmPayload,
       );
-      if (!mounted) return false;
+      if (!mounted) return const <CropTaskItem>[];
 
       final rawTasks = response['tasks'];
       if (rawTasks is List && rawTasks.isNotEmpty) {
@@ -682,7 +658,16 @@ class _CropsScreenState extends State<CropsScreen> {
                       .toString()
                       .toLowerCase()
                       .trim();
-              final requiresInput = completionType == 'with_input';
+              final llmCategory = parseCropTaskCategory(task['task_category']);
+              final inferredCategory = _inferTaskCategoryFromLlm(
+                title: (task['title'] ?? '').toString(),
+                subtitle: (task['subtitle'] ?? '').toString(),
+                completionType: completionType,
+                llmCategory: llmCategory,
+              );
+              final requiresInput =
+                  inferredCategory == CropTaskCategory.queryTask ||
+                  completionType == 'with_input';
               final inputConfig = task['input_config'];
               final inputMap =
                   inputConfig is Map
@@ -705,6 +690,7 @@ class _CropsScreenState extends State<CropsScreen> {
                 isIrrigation: task['is_irrigation'] == true,
                 isHighPriority:
                     (task['priority'] ?? '').toString().toLowerCase() == 'high',
+                category: inferredCategory,
                 requiresInput: requiresInput,
                 inputLabel: _nullableText(inputMap['label']),
                 inputHint: _nullableText(inputMap['placeholder']),
@@ -713,16 +699,7 @@ class _CropsScreenState extends State<CropsScreen> {
             }).toList();
 
         if (parsed.isNotEmpty) {
-          setState(() {
-            tasks = parsed.take(6).toList();
-          });
-          if (farmId != null) {
-            await CropActionsService.saveGeneratedTasksIfNew(
-              farmId: farmId,
-              tasks: parsed.take(6).toList(),
-            );
-          }
-          return true;
+          return parsed;
         }
       }
     } catch (_) {
@@ -734,7 +711,7 @@ class _CropsScreenState extends State<CropsScreen> {
         });
       }
     }
-    return false;
+    return const <CropTaskItem>[];
   }
 
   Future<void> _loadActivityLogs() async {
@@ -753,13 +730,6 @@ class _CropsScreenState extends State<CropsScreen> {
   }
 
   void _onTaskTap(CropTaskItem task) {
-    if (task.isDone) {
-      setState(() {
-        task.isDone = false;
-      });
-      return;
-    }
-
     _completeTask(task);
   }
 
@@ -770,27 +740,34 @@ class _CropsScreenState extends State<CropsScreen> {
       if (!mounted || capturedInput == null) return;
     }
 
-    setState(() {
-      task.isDone = true;
-    });
-
-    await _appendTaskToActionLog(task, capturedInput: capturedInput);
-
     final farmId = _farmId;
+    if (task.category != CropTaskCategory.generalSuggestion) {
+      await _appendTaskToActionLog(task, capturedInput: capturedInput);
+    }
+
     if (farmId != null) {
       final ok = await CropActionsService.markTaskCompleted(
         farmId: farmId,
         task: task,
       );
       if (!ok && mounted) {
-        setState(() {
-          task.isDone = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not update task status')),
         );
         return;
       }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      tasks.removeWhere((item) => item.id == task.id);
+    });
+
+    if (task.category == CropTaskCategory.generalSuggestion) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Suggestion acknowledged')),
+      );
+      return;
     }
 
     if (task.isIrrigation) {
@@ -889,6 +866,62 @@ class _CropsScreenState extends State<CropsScreen> {
         );
       }
     });
+  }
+
+  CropTaskCategory _inferTaskCategoryFromLlm({
+    required String title,
+    required String subtitle,
+    required String completionType,
+    required CropTaskCategory llmCategory,
+  }) {
+    if (llmCategory != CropTaskCategory.actionTask) return llmCategory;
+    if (completionType == 'with_input') return CropTaskCategory.queryTask;
+
+    final text = '$title $subtitle'.toLowerCase();
+    if (text.contains('keep an eye') ||
+        text.contains('monitor') ||
+        text.contains('watch for') ||
+        text.contains('observe')) {
+      return CropTaskCategory.generalSuggestion;
+    }
+    return CropTaskCategory.actionTask;
+  }
+
+  List<CropTaskItem> _mergeAndDedupeTasks(List<CropTaskItem> items) {
+    final out = <CropTaskItem>[];
+    final seen = <String>{};
+    for (final item in items) {
+      final key = _taskKey(item);
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      out.add(item);
+    }
+    return out;
+  }
+
+  String _taskKey(CropTaskItem task) {
+    final title = _norm(task.title);
+    final subtitle = _norm(task.subtitle);
+    if (title.isEmpty || subtitle.isEmpty) return '';
+    return '$title|$subtitle';
+  }
+
+  String _norm(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'[^a-z0-9 ]+'), '')
+        .trim();
+  }
+
+  String _taskSubtitle(CropTaskItem task) {
+    if (task.requiresInput || task.category == CropTaskCategory.queryTask) {
+      return '${task.subtitle} - Input required';
+    }
+    if (task.category == CropTaskCategory.generalSuggestion) {
+      return '${task.subtitle} - Acknowledge';
+    }
+    return task.subtitle;
   }
 
   String? _nullableText(dynamic value) {
@@ -1324,5 +1357,3 @@ class _CropsScreenState extends State<CropsScreen> {
     }
   }
 }
-
-

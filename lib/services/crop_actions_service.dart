@@ -21,10 +21,9 @@ class CropActionsService {
             .inFilter('status', _openStatuses)
             .order('created_at', ascending: false);
 
-    if (rows is! List) return const <CropTaskItem>[];
+    final list = List<Map<String, dynamic>>.from(rows as List);
 
-    return rows
-        .whereType<Map>()
+    return list
         .map((row) => Map<String, dynamic>.from(row))
         .map(_mapRowToTask)
         .toList();
@@ -125,7 +124,17 @@ class CropActionsService {
     final description = (row['description'] ?? '').toString();
     final priority = (row['priority'] ?? '').toString().toLowerCase();
     final isHighPriority = priority == 'high' || priority == 'urgent';
+    final completionType =
+        (row['completion_type'] ?? '').toString().toLowerCase();
+    final requiresInput = completionType == 'with_input';
     final isIrrigation = title.toLowerCase().contains('irrigat');
+    final category = parseCropTaskCategory(row['task_category']);
+    final inferredCategory = _inferCategory(
+      title: title,
+      subtitle: description,
+      fallback: category,
+      requiresInput: requiresInput,
+    );
 
     return CropTaskItem(
       id: (row['id'] ?? '').toString(),
@@ -133,6 +142,9 @@ class CropActionsService {
       subtitle: description,
       isHighPriority: isHighPriority,
       isIrrigation: isIrrigation,
+      category: inferredCategory,
+      requiresInput:
+          inferredCategory == CropTaskCategory.queryTask ? true : requiresInput,
     );
   }
 
@@ -175,6 +187,11 @@ class CropActionsService {
               subtitle: (row['subtitle'] ?? '').toString(),
               isIrrigation: row['isIrrigation'] == true,
               isHighPriority: row['isHighPriority'] == true,
+              category: parseCropTaskCategory(row['taskCategory']),
+              requiresInput: row['requiresInput'] == true,
+              inputLabel: row['inputLabel']?.toString(),
+              inputHint: row['inputHint']?.toString(),
+              inputUnit: row['inputUnit']?.toString(),
             ),
           )
           .toList();
@@ -203,6 +220,11 @@ class CropActionsService {
                   'subtitle': task.subtitle,
                   'isIrrigation': task.isIrrigation,
                   'isHighPriority': task.isHighPriority,
+                  'taskCategory': cropTaskCategoryWireValue(task.category),
+                  'requiresInput': task.requiresInput,
+                  'inputLabel': task.inputLabel,
+                  'inputHint': task.inputHint,
+                  'inputUnit': task.inputUnit,
                 },
               )
               .toList();
@@ -222,6 +244,25 @@ class CropActionsService {
       out.add(task);
     }
     return out;
+  }
+
+  static CropTaskCategory _inferCategory({
+    required String title,
+    required String subtitle,
+    required CropTaskCategory fallback,
+    required bool requiresInput,
+  }) {
+    if (fallback != CropTaskCategory.actionTask) return fallback;
+    if (requiresInput) return CropTaskCategory.queryTask;
+
+    final text = '$title $subtitle'.toLowerCase();
+    if (text.contains('keep an eye') ||
+        text.contains('monitor') ||
+        text.contains('watch for') ||
+        text.contains('observe')) {
+      return CropTaskCategory.generalSuggestion;
+    }
+    return CropTaskCategory.actionTask;
   }
 
   static Future<void> clearCacheForFarm(int farmId) async {

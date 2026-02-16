@@ -34,8 +34,11 @@ class CommunityPost {
   factory CommunityPost.fromRow(
     Map<String, dynamic> row, {
     required Set<String> likedPostIds,
+    Map<String, Map<String, dynamic>> farmersById = const {},
   }) {
-    final farmer = _asMap(row['farmers']);
+    final farmerId = row['farmer_id']?.toString() ?? '';
+    final farmer =
+        farmersById[farmerId] ?? _asMap(row['farmers']);
     final village = farmer['village']?.toString().trim() ?? '';
     final district = farmer['district']?.toString().trim() ?? '';
     final state = farmer['state']?.toString().trim() ?? '';
@@ -45,7 +48,7 @@ class CommunityPost {
 
     return CommunityPost(
       id: row['id'].toString(),
-      farmerId: row['farmer_id'].toString(),
+      farmerId: farmerId,
       farmerName: farmer['name']?.toString() ?? 'Farmer',
       farmerImageUrl:
           farmer['profile_photo']?.toString() ?? farmer['photo_url']?.toString(),
@@ -107,11 +110,23 @@ class CommunityComment {
   });
 
   factory CommunityComment.fromRow(Map<String, dynamic> row) {
-    final farmer = _asMap(row['farmers']);
+    return CommunityComment.fromRowWithFarmers(
+      row,
+      farmersById: const {},
+    );
+  }
+
+  factory CommunityComment.fromRowWithFarmers(
+    Map<String, dynamic> row, {
+    required Map<String, Map<String, dynamic>> farmersById,
+  }) {
+    final farmerId = row['farmer_id']?.toString() ?? '';
+    final farmer =
+        farmersById[farmerId] ?? _asMap(row['farmers']);
     return CommunityComment(
       id: row['id'].toString(),
       postId: row['post_id'].toString(),
-      farmerId: row['farmer_id'].toString(),
+      farmerId: farmerId,
       farmerName: farmer['name']?.toString() ?? 'Farmer',
       farmerImageUrl:
           farmer['profile_photo']?.toString() ?? farmer['photo_url']?.toString(),

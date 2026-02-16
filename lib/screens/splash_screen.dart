@@ -130,10 +130,12 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.agriculture,
-                                size: 60.sp,
-                                color: AppColors.primaryGreen,
+                              child: Padding(
+                                padding: EdgeInsets.all(18.w),
+                                child: Image.asset(
+                                  'assets/images/AppIcon.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           );
@@ -153,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 children: [
                                   Text(
-                                    'KISAN',
+                                    'GreenBird',
                                     style: GoogleFonts.poppins(
                                       fontSize: 36.sp,
                                       fontWeight: FontWeight.bold,

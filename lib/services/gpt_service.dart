@@ -416,6 +416,7 @@ Return ONLY valid JSON object in this exact schema:
       "id": "string",
       "title": "string",
       "subtitle": "string",
+      "task_category": "general_suggestion|action_task|query_task",
       "priority": "low|medium|high",
       "is_irrigation": boolean,
       "completion_type": "simple|with_input",
@@ -434,6 +435,9 @@ Rules:
 - Prioritize by risk and time-sensitivity.
 - Keep titles short and actionable.
 - Keep subtitles practical and human-readable.
+- `general_suggestion`: acknowledge-only guidance, no physical completion needed.
+- `action_task`: concrete field action farmer can perform.
+- `query_task`: requires farmer-provided data; must use `completion_type` = "with_input".
 - At least one task can be "with_input" when measurement/observation is useful.
 - For "simple" tasks, return `input_config` as null.
 - For "with_input" tasks, provide concise input label and placeholder.

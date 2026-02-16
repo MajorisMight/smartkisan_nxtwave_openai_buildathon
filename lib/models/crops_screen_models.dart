@@ -2,12 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 
+enum CropTaskCategory { generalSuggestion, actionTask, queryTask }
+
+CropTaskCategory parseCropTaskCategory(dynamic value) {
+  final raw = value?.toString().toLowerCase().trim() ?? '';
+  switch (raw) {
+    case 'general_suggestion':
+      return CropTaskCategory.generalSuggestion;
+    case 'query_task':
+      return CropTaskCategory.queryTask;
+    case 'action_task':
+    default:
+      return CropTaskCategory.actionTask;
+  }
+}
+
+String cropTaskCategoryWireValue(CropTaskCategory category) {
+  switch (category) {
+    case CropTaskCategory.generalSuggestion:
+      return 'general_suggestion';
+    case CropTaskCategory.queryTask:
+      return 'query_task';
+    case CropTaskCategory.actionTask:
+      return 'action_task';
+  }
+}
+
 class CropTaskItem {
   final String id;
   final String title;
   final String subtitle;
   final bool isIrrigation;
   final bool isHighPriority;
+  final CropTaskCategory category;
   final bool requiresInput;
   final String? inputLabel;
   final String? inputHint;
@@ -20,6 +47,7 @@ class CropTaskItem {
     required this.subtitle,
     this.isIrrigation = false,
     this.isHighPriority = false,
+    this.category = CropTaskCategory.actionTask,
     this.requiresInput = false,
     this.inputLabel,
     this.inputHint,

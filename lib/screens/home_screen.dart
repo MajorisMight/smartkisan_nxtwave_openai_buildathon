@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constants/app_colors.dart';
 import '../utils/dummy_data.dart';
-import 'package:provider/provider.dart';
 import '../models/profile.dart' as db_profile;
 import '../providers/profile_provider.dart';
 import 'fertilizer_screen.dart';
@@ -25,8 +24,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(fullProfileProvider);
     final basicProfileAsync = ref.watch(farmerBasicProfileProvider);
+    final profileAsync = ref.watch(fullProfileProvider);
 
     return Scaffold(
       body: Container(
@@ -36,7 +35,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(profileAsync, basicProfileAsync.valueOrNull?.photoUrl),
+                _buildHeader(
+                  profileAsync: profileAsync,
+                  basicProfileAsync: basicProfileAsync,
+                ),
                 _buildQuickActions(),
                 _buildWeatherStrip(),
                 SizedBox(height: 20.h),
@@ -49,20 +51,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildHeader(
-    AsyncValue<db_profile.FarmerProfile> profileAsync,
-    String? photoUrl,
+    {
+    required AsyncValue<db_profile.FarmerProfile> profileAsync,
+    required AsyncValue<FarmerBasicProfile> basicProfileAsync,
+  }
   ) {
-    final localProfile = context.watch<ProfileProvider>().profile;
-    final nameFromLocal = localProfile?.name?.trim();
-    final farmFromLocal = localProfile?.village?.trim();
+    final profile = basicProfileAsync.valueOrNull;
+    final nameFromBasic = profile?.name.trim() ?? '';
+    final farmFromBasic = profile?.village.trim() ?? '';
+    final photoUrl = profile?.photoUrl;
 
     String name =
-        (nameFromLocal != null && nameFromLocal.isNotEmpty)
-            ? nameFromLocal
+        nameFromBasic.isNotEmpty
+            ? nameFromBasic
             : 'Farmer';
     String farmLine =
-        (farmFromLocal != null && farmFromLocal.isNotEmpty)
-            ? farmFromLocal
+        farmFromBasic.isNotEmpty
+            ? farmFromBasic
             : 'Farm not set';
 
     profileAsync.whenData((profile) {

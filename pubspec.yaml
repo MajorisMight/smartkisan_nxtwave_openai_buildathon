@@ -105,6 +105,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -124,4 +125,9 @@ flutter:
     - .env
     - lib/constants/crop_profiles.json
     - lib/constants/rainfall_normals.json
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/AppIcon.png"
   

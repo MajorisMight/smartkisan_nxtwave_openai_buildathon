@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/crop_options.dart';
 import '../models/crop.dart';
+import '../models/crops_screen_models.dart';
 import '../providers/crop_provider.dart';
 import '../services/activity_logs_service.dart';
 import '../services/crop_actions_service.dart';
@@ -530,10 +534,27 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final landValue = double.tryParse(_landController.text.trim());
     if (landValue == null || landValue <= 0) return;
-    setState(() => _isSubmitting = true);
 
     final cropName = _labelController.text.trim();
     final cropType = _typeController.text.trim();
+    final isBeyondHarvestWindow = await _isBeyondHarvestWindow(
+      cropName: cropName,
+      cropType: cropType,
+      sowDate: _selectedDate,
+    );
+    if (isBeyondHarvestWindow) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Crop is already beyond harvest window. Please choose a more recent sowing date.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
     final areaAcres = _convertToAcres(landValue, _selectedAreaUnit);
 
     int? farmId;
@@ -575,6 +596,60 @@ class _AddCropPageState extends ConsumerState<AddCropPage> {
 
     setState(() => _isSubmitting = false);
     Navigator.pop(context, newCrop);
+  }
+
+  Future<bool> _isBeyondHarvestWindow({
+    required String cropName,
+    required String cropType,
+    required DateTime sowDate,
+  }) async {
+    final profile = await _loadCropProfileForCrop(
+      cropName: cropName,
+      cropType: cropType,
+    );
+    if (profile == null) return false;
+
+    final maxDays = profile.totalDurationDays + profile.harvestEndBufferDays;
+    final daysSinceSowing = DateTime.now().difference(sowDate).inDays;
+    return daysSinceSowing > maxDays;
+  }
+
+  Future<CropProfile?> _loadCropProfileForCrop({
+    required String cropName,
+    required String cropType,
+  }) async {
+    try {
+      final jsonString = await rootBundle.loadString(
+        'lib/constants/crop_profiles.json',
+      );
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map<String, dynamic>) return null;
+
+      final keyCandidates = <String>{
+        if (cropType.trim().isNotEmpty) cropType.trim(),
+        cropName.trim(),
+        if (cropType.trim().isNotEmpty) cropType.split('(').first.trim(),
+      };
+      final normalizedCandidates = keyCandidates
+          .map(normalizeCropIdentifier)
+          .where((value) => value.isNotEmpty)
+          .toSet();
+
+      for (final entry in decoded.entries) {
+        final key = normalizeCropIdentifier(entry.key);
+        final value = entry.value;
+        if (value is! Map) continue;
+        final data = Map<String, dynamic>.from(value);
+        final profileName = normalizeCropIdentifier('${data['name'] ?? ''}');
+        if (normalizedCandidates.contains(key) ||
+            normalizedCandidates.contains(profileName)) {
+          return parseCropProfile(data);
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

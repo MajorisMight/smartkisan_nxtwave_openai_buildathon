@@ -13,16 +13,58 @@ import 'profile_provider.dart';
 final postCategoryProvider = StateProvider<String>((ref) => 'All');
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
+class CommunityFarmerIdentity {
+  final String name;
+  final String? photoUrl;
+
+  const CommunityFarmerIdentity({
+    required this.name,
+    required this.photoUrl,
+  });
+}
+
+final farmerIdentityProvider =
+    FutureProvider.family<CommunityFarmerIdentity, String>((ref, farmerId) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final id = farmerId.trim();
+  if (id.isEmpty) {
+    return const CommunityFarmerIdentity(name: 'Farmer', photoUrl: null);
+  }
+
+  try {
+    final row = await supabase
+        .from('farmers')
+        .select('name, photo_url')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (row == null) {
+      return const CommunityFarmerIdentity(name: 'Farmer', photoUrl: null);
+    }
+
+    final map = Map<String, dynamic>.from(row);
+    final name = (map['name']?.toString() ?? '').trim();
+    final photo = (map['photo_url']?.toString() ?? '').trim();
+    return CommunityFarmerIdentity(
+      name: name.isEmpty ? 'Farmer' : name,
+      photoUrl: photo.isEmpty ? null : photo,
+    );
+  } catch (_) {
+    return const CommunityFarmerIdentity(name: 'Farmer', photoUrl: null);
+  }
+});
+
 final communityPostsProvider = FutureProvider<List<CommunityPost>>((ref) async {
   final supabase = ref.watch(supabaseClientProvider);
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return const <CommunityPost>[];
 
+  // ignore: avoid_print
+  print('[CommunityProvider] Fetching posts for user=$userId');
   final rawPosts = await supabase
       .from('posts')
       .select(
-        'id, farmer_id, category, title, content, image_urls, tags, likes_count, comments_count, created_at, '
-        'farmers:farmer_id(name, photo_url, village, district, state)',
+        'id, farmer_id, category, title, content, image_urls, tags, likes_count, comments_count, created_at',
       )
       .order('created_at', ascending: false);
 
@@ -35,8 +77,26 @@ final communityPostsProvider = FutureProvider<List<CommunityPost>>((ref) async {
       .map((e) => e['post_id'].toString())
       .toSet();
 
-  return List<Map<String, dynamic>>.from(rawPosts as List)
-      .map((row) => CommunityPost.fromRow(row, likedPostIds: likedPostIds))
+  final postRows = List<Map<String, dynamic>>.from(rawPosts as List);
+  // ignore: avoid_print
+  print('[CommunityProvider] Posts fetched=${postRows.length}');
+  final farmerIds = postRows.map((row) => row['farmer_id'].toString());
+  final farmersById = await _loadFarmersByIds(
+    supabase,
+    farmerIds,
+    columns: 'id, name, photo_url, village, district, state',
+  );
+  // ignore: avoid_print
+  print('[CommunityProvider] Farmers fetched=${farmersById.length}');
+
+  return postRows
+      .map(
+        (row) => CommunityPost.fromRow(
+          row,
+          likedPostIds: likedPostIds,
+          farmersById: farmersById,
+        ),
+      )
       .toList();
 });
 
@@ -66,17 +126,33 @@ final filteredCommunityPostsProvider = Provider<List<CommunityPost>>((ref) {
 final commentsByPostProvider =
     FutureProvider.family<List<CommunityComment>, String>((ref, postId) async {
   final supabase = ref.watch(supabaseClientProvider);
+  // ignore: avoid_print
+  print('[CommunityProvider] Fetching comments for post=$postId');
   final rows = await supabase
       .from('comments')
       .select(
-        'id, post_id, farmer_id, content, created_at, '
-        'farmers:farmer_id(name, photo_url)',
+        'id, post_id, farmer_id, content, created_at',
       )
       .eq('post_id', postId)
       .order('created_at', ascending: false);
 
-  return List<Map<String, dynamic>>.from(rows as List)
-      .map(CommunityComment.fromRow)
+  final commentRows = List<Map<String, dynamic>>.from(rows as List);
+  // ignore: avoid_print
+  print('[CommunityProvider] Comments fetched=${commentRows.length} for post=$postId');
+  final farmerIds = commentRows.map((row) => row['farmer_id'].toString());
+  final farmersById = await _loadFarmersByIds(
+    supabase,
+    farmerIds,
+    columns: 'id, name, photo_url',
+  );
+
+  return commentRows
+      .map(
+        (row) => CommunityComment.fromRowWithFarmers(
+          row,
+          farmersById: farmersById,
+        ),
+      )
       .toList();
 });
 
@@ -367,4 +443,41 @@ String? _extractPostIdFromPayload(PostgresChangePayload payload) {
   if (fromOld != null && fromOld.isNotEmpty) return fromOld;
 
   return null;
+}
+
+Future<Map<String, Map<String, dynamic>>> _loadFarmersByIds(
+  SupabaseClient supabase,
+  Iterable<String> farmerIds, {
+  required String columns,
+}) async {
+  final ids = farmerIds
+      .map((id) => id.trim())
+      .where((id) => id.isNotEmpty)
+      .toSet()
+      .toList();
+
+  if (ids.isEmpty) return const <String, Map<String, dynamic>>{};
+
+  try {
+    final rows = await supabase
+        .from('farmers')
+        .select(columns)
+        .inFilter('id', ids);
+
+    final out = <String, Map<String, dynamic>>{};
+    for (final row in List<Map<String, dynamic>>.from(rows as List)) {
+      final id = row['id']?.toString() ?? '';
+      if (id.isNotEmpty) {
+        out[id] = row;
+      }
+    }
+    // ignore: avoid_print
+    print('[CommunityProvider] Farmers lookup success ids=${ids.length} found=${out.length}');
+    return out;
+  } catch (_) {
+    // Keep feed usable even if profile read is blocked by policy.
+    // ignore: avoid_print
+    print('[CommunityProvider] Farmers lookup failed (likely RLS/policy)');
+    return const <String, Map<String, dynamic>>{};
+  }
 }

@@ -96,11 +96,28 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _openCreatePostPage,
+        onPressed: () {
+          debugPrint('[CommunityScreen] FAB tapped: open create post page');
+          _openCreatePostPage();
+        },
         backgroundColor: AppColors.primaryGreen,
         child: const Icon(Icons.add, color: AppColors.white),
       ),
     );
+  }
+
+  Future<void> _refreshPosts() async {
+    debugPrint('[CommunityScreen] Refresh tapped');
+    ref.invalidate(communityPostsProvider);
+    ref.invalidate(farmerIdentityProvider);
+    try {
+      final refreshFuture = ref.refresh(communityPostsProvider.future);
+      await refreshFuture;
+      debugPrint('[CommunityScreen] Refresh complete');
+    } catch (e) {
+      debugPrint('[CommunityScreen] Refresh failed: $e');
+      rethrow;
+    }
   }
 
   Widget _buildHeader() {
@@ -129,18 +146,41 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               ),
             ],
           ),
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryGreen,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.people_outline,
-              color: AppColors.white,
-              size: 20.sp,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Refresh posts',
+                  onPressed: _refreshPosts,
+                  icon: Icon(
+                    Icons.refresh,
+                    color: AppColors.white,
+                    size: 20.sp,
+                  ),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.people_outline,
+                  color: AppColors.white,
+                  size: 20.sp,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -241,7 +281,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 
   Widget _buildPostCard(CommunityPost post) {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-    final avatar = post.farmerImageUrl;
+    final identityAsync = ref.watch(farmerIdentityProvider(post.farmerId));
+    final identity = identityAsync.valueOrNull;
+    final displayName = identity?.name ?? post.farmerName;
+    final avatar = identity?.photoUrl ?? post.farmerImageUrl;
     final hasAvatar = avatar != null && avatar.trim().isNotEmpty;
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -274,7 +317,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        post.farmerName,
+                        displayName,
                         style: GoogleFonts.poppins(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -415,16 +458,28 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       : FontAwesomeIcons.heart,
                   '${post.likesCount}',
                   post.isLiked ? AppColors.error : AppColors.textSecondary,
-                  () => ref
-                      .read(communityActionsProvider.notifier)
-                      .toggleLike(post),
+                  () {
+                    debugPrint('[CommunityScreen] Like tapped post=${post.id}');
+                    ref
+                        .read(communityActionsProvider.notifier)
+                        .toggleLike(post)
+                        .then((_) {
+                          debugPrint('[CommunityScreen] Like success post=${post.id}');
+                        })
+                        .catchError((e) {
+                          debugPrint('[CommunityScreen] Like failed post=${post.id}: $e');
+                        });
+                  },
                 ),
                 SizedBox(width: 24.w),
                 _actionButton(
                   FontAwesomeIcons.comment,
                   '${post.commentsCount}',
                   AppColors.textSecondary,
-                  () => _showCommentsDialog(post),
+                  () {
+                    debugPrint('[CommunityScreen] Comment tapped post=${post.id}');
+                    _showCommentsDialog(post);
+                  },
                 ),
               ],
             ),
@@ -436,11 +491,14 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
 
   Future<void> _deletePost(CommunityPost post) async {
     try {
+      debugPrint('[CommunityScreen] Delete tapped post=${post.id}');
       await ref.read(communityActionsProvider.notifier).deletePost(
             postId: post.id,
           );
       ref.invalidate(communityPostsProvider);
+      debugPrint('[CommunityScreen] Delete success post=${post.id}');
     } catch (e) {
+      debugPrint('[CommunityScreen] Delete failed post=${post.id}: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not delete post. $e')),
@@ -691,21 +749,28 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                             itemCount: comments.length,
                             itemBuilder: (context, index) {
                               final c = comments[index];
+                              final identityAsync = ref.watch(
+                                farmerIdentityProvider(c.farmerId),
+                              );
+                              final identity = identityAsync.valueOrNull;
+                              final displayName = identity?.name ?? c.farmerName;
+                              final displayPhoto =
+                                  identity?.photoUrl ?? c.farmerImageUrl;
                               final hasAvatar =
-                                  c.farmerImageUrl != null &&
-                                  c.farmerImageUrl!.trim().isNotEmpty;
+                                  displayPhoto != null &&
+                                  displayPhoto.trim().isNotEmpty;
                               return ListTile(
                                 leading: CircleAvatar(
                                   backgroundImage:
                                       hasAvatar
-                                          ? NetworkImage(c.farmerImageUrl!)
+                                          ? NetworkImage(displayPhoto)
                                           : null,
                                   child:
                                       hasAvatar
                                           ? null
                                           : const Icon(Icons.person_outline),
                                 ),
-                                title: Text(c.farmerName),
+                                title: Text(displayName),
                                 subtitle: Text(c.content),
                                 trailing: Text(
                                   _getTimeAgo(c.createdAt),
